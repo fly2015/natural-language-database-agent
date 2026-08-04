@@ -7,7 +7,7 @@ Here is the complete English version of the project documentation, formatted as 
 ## 🎯 1. PROJECT OVERVIEW
 
 * **Project Name:** Enterprise Natural Language Database Agent
-* **Objective:** Build an intelligent system that enables users to query databases using **natural language** (English, Vietnamese, etc.). The system automatically parses user intent, retrieves relevant schema context, generates accurate SQL queries, enforces safety guardrails, executes read-only operations, and presents visual tabular data.
+* **Objective:** Build an intelligent system that enables users to query databases using **natural language** (English). The system automatically parses user intent, retrieves relevant schema context, generates accurate SQL queries, enforces safety guardrails, executes read-only operations, and presents visual tabular data.
 * **Timeline:** 2 Weeks (Iterative / Phased strategy).
 * **Tech Stack:** Java (Spring Boot), LangChain4j, JDBC, Database (PostgreSQL / H2), LLM API (OpenAI / Gemini / Claude).
 
