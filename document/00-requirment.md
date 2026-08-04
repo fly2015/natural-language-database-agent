@@ -1,103 +1,43 @@
-Đã cập nhật lại chính xác theo yêu cầu của bạn! Cụm từ được chuẩn hóa thành **"Hệ thống truy vấn Database bằng ngôn ngữ tự nhiên"** (nghĩa là hệ thống có thể hỗ trợ cả Tiếng Việt, Tiếng Anh hoặc bất kỳ ngôn ngữ nào mà LLM hỗ trợ).
-
-Dưới đây là bản tóm tắt hoàn chỉnh để bạn lưu lại:
+Dưới đây là đoạn tóm tắt thông tin đầy đủ, chuẩn hóa và cô đọng nhất. Bạn có thể sao chép đoạn này trực tiếp vào file **`README.md`**, file tài liệu kiến trúc (**`ARCHITECTURE.md`**) hoặc đưa vào Slide báo cáo của dự án:
 
 ---
 
-## 📄 I. ĐẶC TẢ PROJECT: NATURAL LANGUAGE DATABASE AGENT
+# 📌 BẢN TÓM TẮT ĐẶC TẢ VÀ KIẾN TRÚC DỰ ÁN
 
-* **Tên dự án:** Enterprise Natural Language Database Agent (Hệ thống truy vấn Database bằng ngôn ngữ tự nhiên).
-* **Mục tiêu chính:** Xây dựng ứng dụng cho phép người dùng gõ câu hỏi bằng **ngôn ngữ tự nhiên** $\rightarrow$ AI đọc hiểu, tự động tra cứu cấu trúc Database $\rightarrow$ Sinh câu lệnh SQL $\rightarrow$ Kiểm tra an toàn $\rightarrow$ Thực thi JDBC $\rightarrow$ Trả kết quả bảng dữ liệu trực quan lên giao diện.
-* **Thời gian thực hiện:** 2 tuần.
-* **Hệ sinh thái công nghệ:** Java (Spring Boot), JDBC / Database (PostgreSQL hoặc H2), LangChain4j, Mô hình AI (OpenAI / Gemini / Claude API).
+## 🎯 1. TỔNG QUAN DỰ ÁN
 
-### Các tính năng cốt lõi (Core Features):
-
-1. **RAG (Schema & Rules Knowledge):** Cung cấp cấu trúc bảng/cột và các quy tắc nghiệp vụ (ví dụ: *Khách VIP = Chi tiêu > 50M*) cho AI hiểu đúng trước khi sinh SQL.
-2. **Text-to-SQL Generation:** AI tự động viết câu lệnh SQL SELECT chuẩn xác dựa trên câu hỏi bằng ngôn ngữ tự nhiên.
-3. **Guardrails (Bảo mật & An toàn):**
-* Chặn hoàn toàn các câu lệnh can thiệp/phá hoại dữ liệu (`DELETE`, `DROP`, `UPDATE`, `INSERT`).
-* Tự động thêm giới hạn số dòng (như `LIMIT 100`) để tránh treo Database.
-
-
-4. **Data Execution & Visual Result:** Chạy SQL xuống Database qua JDBC và trả kết quả dưới dạng Bảng dữ liệu (Table/Markdown) lên UI.
+* **Tên dự án:** Enterprise Natural Language Database Agent.
+* **Mục tiêu:** Xây dựng hệ thống cho phép người dùng truy vấn Database bằng **ngôn ngữ tự nhiên** (Tiếng Việt, Tiếng Anh...). Hệ thống tự động đọc hiểu yêu cầu, tra cứu cấu trúc dữ liệu, sinh câu lệnh SQL, kiểm tra an toàn và thực thi lấy kết quả trực quan.
+* **Thời gian thực hiện:** 2 tuần (Chiến lược làm theo từng giai đoạn).
+* **Tech Stack:** Java (Spring Boot), LangChain4j, JDBC, Database (PostgreSQL / H2), LLM API (OpenAI / Gemini / Claude).
 
 ---
 
-## 📐 II. SO SÁNH 2 GIẢI PHÁP KIẾN TRÚC
+## 🛠️ 2. CÁC TÍNH NĂNG CỐT LÕI (CORE FEATURES)
 
-```
-  GỢI Ý LỘ TRÌNH CHIẾN LƯỢC (2 TUẦN)
-  =============================================================================
-  [Tuần 1 -> Đầu Tuần 2]  ──► GIẢI PHÁP 1: Chưa dùng MCP (Nộp bài an toàn 100%)
-                                    │
-                                    ▼ (Nếu còn thừa 1-2 ngày cuối)
-  [Cuối Tuần 2]           ──► GIẢI PHÁP 2: Nâng cấp sang MCP (Thêm điểm cộng)
-  =============================================================================
-
-```
-
-### 1. GIẢI PHÁP 1: Kiến trúc Tích hợp Tập trung (Chưa dùng MCP)
-
-> **Mô hình Monolith tích hợp sẵn bằng LangChain4j**
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ APPLICATION SPRING BOOT (MONOLITH)                                          │
-│                                                                             │
-│  [Web UI Chat] ──► [Agent Orchestrator] ──► [LangChain4j + AI Model API]    │
-│                                                     │                       │
-│                                     Gọi trực tiếp   ▼                       │
-│                                          [Java JDBC Tools & RAG Engine]     │
-└─────────────────────────────────────────────────────┬───────────────────────┘
-                                                      │ (JDBC)
-                                                      ▼
-                                           [ Database H2 / Postgres ]
-
-```
-
-* **Cách hoạt động:**
-* Toàn bộ UI, RAG Engine, Logic gọi AI (LangChain4j) và JDBC Tool chạy chung trong **1 Project Spring Boot duy nhất**.
-* LangChain4j đóng vai trò kết nối trực tiếp các hàm Java `@Tool` với LLM qua cơ chế Function Calling / Tool Calling chuẩn của hãng (OpenAI, Gemini...).
+1. **Dynamic Schema & Rules Retrieval (RAG):**
+* **Tối ưu Token (Tiết kiệm 80 - 90% chi phí):** Dùng Vector Search (RAG) để chỉ lọc ra các bảng thực sự liên quan đến câu hỏi thay vì gửi toàn bộ Database Schema vào Prompt.
+* Tra cứu các quy tắc nghiệp vụ nội bộ (business rules) để AI hiểu đúng ngữ cảnh.
 
 
-* **Ưu điểm:**
-* **Cực kỳ nhanh & Dễ triển khai:** Phù hợp nhất cho tiến độ 2 tuần, không tốn thời gian dựng giao thức mạng kết nối giữa các dịch vụ.
-* Phù hợp làm sản phẩm nộp bài an toàn, chắc chắn demo thành công.
+2. **Text-to-SQL Generation:** Sinh câu lệnh SQL SELECT chuẩn xác từ câu hỏi ngôn ngữ tự nhiên.
+3. **Database Guardrails (Bảo mật & An toàn):**
+* Chặn 100% các câu lệnh can thiệp/phá hoại dữ liệu (`DELETE`, `DROP`, `UPDATE`, `INSERT`, `ALTER`).
+* Tự động bổ sung giới hạn số dòng (như `LIMIT 100`) để tránh treo hệ thống.
 
 
-* **Nhược điểm:** Code bị đóng gói chặt (coupled), không chia sẻ được tính năng Query Database cho các ứng dụng client khác bên ngoài.
+4. **Data Execution & Visual Result:** Thực thi câu lệnh SQL an toàn qua JDBC và trả về kết quả bảng dữ liệu trực quan trên giao diện.
 
 ---
 
-### 2. GIẢI PHÁP 2: Kiến trúc Chuẩn hóa Cắm-và-Chạy (Có dùng MCP)
+## 📐 3. HAI GIẢI PHÁP KIẾN TRÚC VÀ LỘ TRÌNH THỰC HIỆN
 
-> **Tách riêng Cửa ngõ Database thành Java MCP Server theo chuẩn Anthropic**
+### 🟢 GIAI ĐOẠN 1: Kiến trúc Tích hợp Tập trung (Chưa dùng MCP) — *Ưu tiên triển khai Tuần 1*
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ 1. MCP CLIENT / HOST (Web UI Spring Boot HOẶC App Claude Desktop)          │
-└──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │ Giao thức MCP (JSON-RPC)
-┌──────────────────────────────────────▼──────────────────────────────────────┐
-│ 2. JAVA DATABASE MCP SERVER (Cửa ngõ dữ liệu độc lập)                       │
-│    • Tool 1: get_schema_and_rules()  ──► [Embedded RAG Engine]             │
-│    • Tool 2: execute_select_sql()    ──► [Guardrails + JDBC Engine]         │
-└──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │ (JDBC)
-                                       ▼
-                            [ Database H2 / Postgres ]
+* **Mô hình:** Tích hợp toàn bộ Web UI, RAG Engine, Guardrails và JDBC Tools trong **1 Project Spring Boot Monolith** sử dụng **LangChain4j**.
+* **Mục tiêu:** Đảm bảo chắc chắn 100% có sản phẩm hoàn chỉnh, chạy ổn định để demo và nộp bài đúng hạn.
 
-```
+### 🔵 GIAI ĐOẠN 2: Kiến trúc Chuẩn hóa Cắm-và-Chạy (Có dùng MCP) — *Nâng cấp khi còn thời gian Tuần 2*
 
-* **Cách hoạt động:**
-* **Java MCP Server:** Đóng gói RAG Engine + Guardrail + JDBC Tool thành 1 dịch vụ độc lập chạy SDK `mcp-java-sdk`. Dịch vụ này đóng vai trò "Ổ cắm Database" thông minh.
-* **MCP Client / Host:** Là trang Web UI của bạn (dùng LangChain4j MCP Client) HOẶC ứng dụng **Claude Desktop chính thức**. Client chỉ việc "cắm" vào MCP Server để chat mà không cần biết cách truy vấn JDBC bên dưới ra sao.
-
-
-* **Ưu điểm:**
-* **Cắm-và-Chạy (Plug & Play):** Có thể kết nối trực tiếp với Claude Desktop mà không cần tốn công làm Web UI.
-* **Tái sử dụng cao & Bảo mật tập trung:** Mọi ứng dụng AI trong doanh nghiệp muốn query Database đều có thể dùng chung 1 MCP Server này, mọi Guardrail được kiểm soát tại 1 nơi.
-
-
-* **Nhược điểm:** Phải hiểu thêm về giao thức MCP (JSON-RPC, Stdio/SSE) và tốn thêm thời gian cấu hình kết nối Client - Server.
+* **Mô hình:** Tách riêng toàn bộ RAG Engine + Guardrails + JDBC Tools thành một **Java MCP Server (Model Context Protocol)** độc lập chuẩn Anthropic.
+* **Mục tiêu:** Biến Database thành "ổ cắm thông minh", cho phép bất kỳ MCP Client nào (Web UI hoặc ứng dụng **Claude Desktop** chính thức) kết nối cắm-và-chạy (Plug-and-Play) mà không cần viết lại code kết nối.
