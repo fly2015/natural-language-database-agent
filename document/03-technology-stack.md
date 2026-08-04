@@ -12,7 +12,7 @@ This document defines the technologies selected for the Enterprise Natural Langu
 ## 3. Selected Technologies
 
 ### 3.1 Backend Application
-- Java 21
+- Java 25
 - Spring Boot 4.x
 
 Why:

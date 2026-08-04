@@ -8,6 +8,10 @@ public record GeneratedSql(
         List<String> assumptions,
         String reason
 ) {
+    public static GeneratedSql ok(String sql, List<String> assumptions) {
+        return new GeneratedSql("OK", sql, List.copyOf(assumptions), "");
+    }
+
     public static GeneratedSql rejected(String reason) {
         return new GeneratedSql("REJECTED", null, List.of(), reason);
     }

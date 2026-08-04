@@ -100,6 +100,24 @@ class SqlGuardrailServiceTest {
         assertThat(result.violations()).contains("SQL references an unknown column: o.secret_note.");
     }
 
+    @Test
+    void doesNotTreatOrderByColumnAsTableReference() {
+        GuardrailResult result = guardrailService.validateAndSanitize(
+                "SELECT o.id, o.order_date FROM orders o ORDER BY o.order_date DESC LIMIT 100");
+
+        assertThat(result.allowed()).isTrue();
+        assertThat(result.violations()).isEmpty();
+    }
+
+    @Test
+    void rejectsColumnNameUsedAsTableName() {
+        GuardrailResult result = guardrailService.validateAndSanitize(
+                "SELECT order_date FROM order_date LIMIT 100");
+
+        assertThat(result.allowed()).isFalse();
+        assertThat(result.violations()).contains("SQL references an unknown table: order_date.");
+    }
+
     private static class StaticSchemaCatalog implements SchemaCatalog {
 
         private static final Map<String, Set<String>> TABLES = Map.of(
