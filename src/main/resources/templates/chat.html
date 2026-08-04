@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Natural Language Database Agent</title>
+    <link rel="stylesheet" href="/css/chat.css">
+</head>
+<body>
+<main class="app-shell">
+    <section class="workspace" aria-label="Natural language database query workspace">
+        <header class="topbar">
+            <div>
+                <h1>Natural Language Database Agent</h1>
+                <p class="status-line" id="connectionStatus">Ready</p>
+            </div>
+            <div class="metrics" aria-label="Last query metrics">
+                <span id="traceId">No trace</span>
+                <span id="latency">0 ms</span>
+            </div>
+        </header>
+
+        <section class="conversation" id="conversation" aria-live="polite">
+            <article class="message assistant">
+                <div class="message-meta">Agent</div>
+                <div class="message-body">Ask a business question against the demo database.</div>
+            </article>
+        </section>
+
+        <section class="result-panel" id="resultPanel" hidden>
+            <div class="panel-header">
+                <h2>Result</h2>
+                <button class="ghost-button" type="button" id="toggleSql">SQL</button>
+            </div>
+            <div class="table-wrap" id="tableWrap"></div>
+            <pre class="sql-panel" id="sqlPanel" hidden></pre>
+        </section>
+
+        <form class="composer" id="queryForm">
+            <label class="sr-only" for="questionInput">Question</label>
+            <textarea id="questionInput" name="question" rows="2" maxlength="1000"
+                      placeholder="Show top 10 customers by total spending in 2026"></textarea>
+            <button type="submit" id="submitButton">Ask</button>
+        </form>
+    </section>
+</main>
+<script src="/js/chat.js"></script>
+</body>
+</html>
