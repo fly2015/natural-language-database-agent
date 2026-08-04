@@ -23,7 +23,7 @@ Task:
 - If the project is not initialized yet, scaffold the backend foundation first.
 
 Mandatory constraints:
-- Use Java 21, Spring Boot 4.x, Maven, LangChain4j, PostgreSQL-targeted SQL, and H2 for local tests.
+- Use Java 25, Spring Boot 4.x, Maven, LangChain4j, PostgreSQL-targeted SQL, and H2 for local tests.
 - Keep business logic modular inside the monolith.
 - Enforce read-only SQL rules.
 - Never introduce write-query execution paths.

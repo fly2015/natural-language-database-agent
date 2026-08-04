@@ -5,7 +5,7 @@ This project is an Enterprise Natural Language Database Agent.
 Primary goal: convert English natural-language questions into safe, accurate, read-only SQL queries and return readable tabular results.
 
 ## Primary Stack
-- Java 21
+- Java 25
 - Spring Boot 4.x
 - LangChain4j
 - PostgreSQL 16+ for production

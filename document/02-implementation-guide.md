@@ -31,7 +31,7 @@ Build a production-ready Natural Language to SQL agent that lets business users 
 - Cost control via selective retrieval.
 
 ## 6. Recommended Tech Stack
-- Language: Java 21+
+- Language: Java 25
 - Framework: Spring Boot
 - Agent SDK: LangChain4j
 - Database: PostgreSQL (primary), H2 (local demo)

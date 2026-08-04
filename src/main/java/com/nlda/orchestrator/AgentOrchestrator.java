@@ -10,6 +10,7 @@ import com.nlda.generation.SqlGenerationService;
 import com.nlda.guardrail.GuardrailResult;
 import com.nlda.guardrail.SqlExecutionRejectedException;
 import com.nlda.guardrail.SqlGuardrailService;
+import com.nlda.generation.SqlGenerationProperties;
 import com.nlda.retrieval.RetrievalContext;
 import com.nlda.retrieval.RetrievalService;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class AgentOrchestrator {
     private final QueryExecutor queryExecutor;
     private final ResultFormatter resultFormatter;
     private final AuditLogger auditLogger;
+    private final SqlGenerationProperties generationProperties;
 
     public AgentOrchestrator(
             RetrievalService retrievalService,
@@ -33,7 +35,8 @@ public class AgentOrchestrator {
             SqlGuardrailService guardrailService,
             QueryExecutor queryExecutor,
             ResultFormatter resultFormatter,
-            AuditLogger auditLogger
+            AuditLogger auditLogger,
+            SqlGenerationProperties generationProperties
     ) {
         this.retrievalService = retrievalService;
         this.sqlGenerationService = sqlGenerationService;
@@ -41,6 +44,7 @@ public class AgentOrchestrator {
         this.queryExecutor = queryExecutor;
         this.resultFormatter = resultFormatter;
         this.auditLogger = auditLogger;
+        this.generationProperties = generationProperties;
     }
 
     public QueryResponse answer(String question) {
@@ -55,6 +59,16 @@ public class AgentOrchestrator {
         }
 
         GuardrailResult guardrail = guardrailService.validateAndSanitize(generatedSql.sql());
+        for (int attempt = 0; !guardrail.allowed() && attempt < generationProperties.getRepairRetries(); attempt++) {
+            GeneratedSql repairedSql = sqlGenerationService.repair(question, context, generatedSql.sql(),
+                    guardrail.violations());
+            if (!"OK".equals(repairedSql.status())) {
+                auditLogger.record(traceId, question, generatedSql.sql(), "DENY", "REPAIR_REJECTED");
+                return rejected(traceId, started, repairedSql.reason());
+            }
+            generatedSql = repairedSql;
+            guardrail = guardrailService.validateAndSanitize(generatedSql.sql());
+        }
         if (!guardrail.allowed()) {
             auditLogger.record(traceId, question, generatedSql.sql(), "DENY", "REJECTED");
             return rejected(traceId, started, String.join(" ", guardrail.violations()));
