@@ -1,43 +1,76 @@
-Dưới đây là đoạn tóm tắt thông tin đầy đủ, chuẩn hóa và cô đọng nhất. Bạn có thể sao chép đoạn này trực tiếp vào file **`README.md`**, file tài liệu kiến trúc (**`ARCHITECTURE.md`**) hoặc đưa vào Slide báo cáo của dự án:
+Here is the complete English version of the project documentation, formatted as a clean, professional **`README.md`** file that you can use directly in your Git repository or project pitch.
 
 ---
 
-# 📌 BẢN TÓM TẮT ĐẶC TẢ VÀ KIẾN TRÚC DỰ ÁN
+# 📌 PROJECT SPECIFICATION & ARCHITECTURE OVERVIEW
 
-## 🎯 1. TỔNG QUAN DỰ ÁN
+## 🎯 1. PROJECT OVERVIEW
 
-* **Tên dự án:** Enterprise Natural Language Database Agent.
-* **Mục tiêu:** Xây dựng hệ thống cho phép người dùng truy vấn Database bằng **ngôn ngữ tự nhiên** (Tiếng Việt, Tiếng Anh...). Hệ thống tự động đọc hiểu yêu cầu, tra cứu cấu trúc dữ liệu, sinh câu lệnh SQL, kiểm tra an toàn và thực thi lấy kết quả trực quan.
-* **Thời gian thực hiện:** 2 tuần (Chiến lược làm theo từng giai đoạn).
+* **Project Name:** Enterprise Natural Language Database Agent
+* **Objective:** Build an intelligent system that enables users to query databases using **natural language** (English, Vietnamese, etc.). The system automatically parses user intent, retrieves relevant schema context, generates accurate SQL queries, enforces safety guardrails, executes read-only operations, and presents visual tabular data.
+* **Timeline:** 2 Weeks (Iterative / Phased strategy).
 * **Tech Stack:** Java (Spring Boot), LangChain4j, JDBC, Database (PostgreSQL / H2), LLM API (OpenAI / Gemini / Claude).
 
 ---
 
-## 🛠️ 2. CÁC TÍNH NĂNG CỐT LÕI (CORE FEATURES)
+## 🛠️ 2. CORE FEATURES
 
 1. **Dynamic Schema & Rules Retrieval (RAG):**
-* **Tối ưu Token (Tiết kiệm 80 - 90% chi phí):** Dùng Vector Search (RAG) để chỉ lọc ra các bảng thực sự liên quan đến câu hỏi thay vì gửi toàn bộ Database Schema vào Prompt.
-* Tra cứu các quy tắc nghiệp vụ nội bộ (business rules) để AI hiểu đúng ngữ cảnh.
+* **Token Optimization (80–90% Cost Reduction):** Uses Vector Search (RAG) to dynamically retrieve *only* the specific table schemas relevant to the query, rather than stuffing the entire database schema into the LLM context.
+* Injects internal business logic/rules (e.g., *VIP Customer = total spend > $2,000*) so the LLM correctly interprets complex queries.
 
 
-2. **Text-to-SQL Generation:** Sinh câu lệnh SQL SELECT chuẩn xác từ câu hỏi ngôn ngữ tự nhiên.
-3. **Database Guardrails (Bảo mật & An toàn):**
-* Chặn 100% các câu lệnh can thiệp/phá hoại dữ liệu (`DELETE`, `DROP`, `UPDATE`, `INSERT`, `ALTER`).
-* Tự động bổ sung giới hạn số dòng (như `LIMIT 100`) để tránh treo hệ thống.
+2. **Text-to-SQL Generation:** Translates natural language questions into precise SQL `SELECT` queries.
+3. **Database Guardrails (Security & Safety):**
+* Hard-blocks 100% of data-mutation or destructive queries (`DELETE`, `DROP`, `UPDATE`, `INSERT`, `ALTER`).
+* Automatically enforces row limits (e.g., `LIMIT 100`) to prevent database hanging and memory overflow.
 
 
-4. **Data Execution & Visual Result:** Thực thi câu lệnh SQL an toàn qua JDBC và trả về kết quả bảng dữ liệu trực quan trên giao diện.
+4. **Data Execution & Visual Result:** Safely executes SQL queries via JDBC and formats raw JSON results into intuitive markdown/tabular views on the UI.
 
 ---
 
-## 📐 3. HAI GIẢI PHÁP KIẾN TRÚC VÀ LỘ TRÌNH THỰC HIỆN
+## 📐 3. ARCHITECTURE SOLUTIONS & ROADMAP
 
-### 🟢 GIAI ĐOẠN 1: Kiến trúc Tích hợp Tập trung (Chưa dùng MCP) — *Ưu tiên triển khai Tuần 1*
+### 🟢 PHASE 1: Centralized Integrated Architecture (Non-MCP) — *Primary Focus (Week 1)*
 
-* **Mô hình:** Tích hợp toàn bộ Web UI, RAG Engine, Guardrails và JDBC Tools trong **1 Project Spring Boot Monolith** sử dụng **LangChain4j**.
-* **Mục tiêu:** Đảm bảo chắc chắn 100% có sản phẩm hoàn chỉnh, chạy ổn định để demo và nộp bài đúng hạn.
+* **Model:** Combines Web UI, RAG Engine, Guardrails, and JDBC Tools within a **single Spring Boot Monolith** powered by **LangChain4j**.
+* **Goal:** Ensures a 100% working, stable, and reliable deliverable on time for demo/submission.
 
-### 🔵 GIAI ĐOẠN 2: Kiến trúc Chuẩn hóa Cắm-và-Chạy (Có dùng MCP) — *Nâng cấp khi còn thời gian Tuần 2*
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ SPRING BOOT APPLICATION (MONOLITH)                                          │
+│                                                                             │
+│  [Web UI Chat] ──► [Agent Orchestrator] ──► [LangChain4j + AI Model API]    │
+│                                                     │                       │
+│                                    Direct Call      ▼                       │
+│                                          [Java JDBC Tools & RAG Engine]     │
+└─────────────────────────────────────────────────────┬───────────────────────┘
+                                                      │ (JDBC)
+                                                      ▼
+                                           [ Database H2 / Postgres ]
 
-* **Mô hình:** Tách riêng toàn bộ RAG Engine + Guardrails + JDBC Tools thành một **Java MCP Server (Model Context Protocol)** độc lập chuẩn Anthropic.
-* **Mục tiêu:** Biến Database thành "ổ cắm thông minh", cho phép bất kỳ MCP Client nào (Web UI hoặc ứng dụng **Claude Desktop** chính thức) kết nối cắm-và-chạy (Plug-and-Play) mà không cần viết lại code kết nối.
+```
+
+---
+
+### 🔵 PHASE 2: Standardized Plug-and-Play Architecture (MCP) — *Enhancement (Week 2)*
+
+* **Model:** Decouples the RAG Engine, Guardrails, and JDBC Tools into an independent **Java MCP Server (Model Context Protocol)** adhering to Anthropic's open-source standard.
+* **Goal:** Transforms the database into a "smart socket," enabling any MCP Client (your Web UI or the official **Claude Desktop app**) to connect instantly via plug-and-play without rewriting backend integration code.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. MCP CLIENT / HOST (Spring Boot Web UI OR Official Claude Desktop App)    │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ MCP Protocol (JSON-RPC)
+┌──────────────────────────────────────▼──────────────────────────────────────┐
+│ 2. JAVA DATABASE MCP SERVER (Independent Data Service)                      │
+│    • Tool 1: get_schema_and_rules()  ──► [Embedded RAG Engine]             │
+│    • Tool 2: execute_select_sql()    ──► [Guardrails + JDBC Engine]         │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ (JDBC)
+                                       ▼
+                            [ Database H2 / Postgres ]
+
+```
