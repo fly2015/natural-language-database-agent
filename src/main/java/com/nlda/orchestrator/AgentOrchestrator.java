@@ -11,8 +11,8 @@ import com.nlda.guardrail.GuardrailResult;
 import com.nlda.guardrail.SqlExecutionRejectedException;
 import com.nlda.guardrail.SqlGuardrailService;
 import com.nlda.generation.SqlGenerationProperties;
-import com.nlda.retrieval.RetrievalContext;
 import com.nlda.retrieval.RetrievalService;
+import com.nlda.retrieval.model.RetrievalContext;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -59,7 +59,8 @@ public class AgentOrchestrator {
         }
 
         GuardrailResult guardrail = guardrailService.validateAndSanitize(generatedSql.sql());
-        for (int attempt = 0; !guardrail.allowed() && attempt < generationProperties.getRepairRetries(); attempt++) {
+        for (int attempt = 0; !guardrail.allowed() && attempt < generationProperties.getRepairRetries(); attempt++) 
+        {
             GeneratedSql repairedSql = sqlGenerationService.repair(question, context, generatedSql.sql(),
                     guardrail.violations());
             if (!"OK".equals(repairedSql.status())) {

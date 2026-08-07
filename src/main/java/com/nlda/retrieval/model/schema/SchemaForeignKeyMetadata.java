@@ -1,4 +1,4 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.model.schema;
 
 public record SchemaForeignKeyMetadata(
         String columnName,
@@ -6,3 +6,5 @@ public record SchemaForeignKeyMetadata(
         String referencedColumn
 ) {
 }
+
+

@@ -1,4 +1,4 @@
-package com.nlda.retrieval;
+package com.nlda.retrieval.metadata;
 
 public class SchemaMetadataException extends RuntimeException {
 

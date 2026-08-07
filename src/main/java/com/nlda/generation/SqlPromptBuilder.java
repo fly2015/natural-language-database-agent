@@ -1,6 +1,6 @@
 package com.nlda.generation;
 
-import com.nlda.retrieval.RetrievalContext;
+import com.nlda.retrieval.model.RetrievalContext;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

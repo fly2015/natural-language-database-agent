@@ -1,4 +1,4 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.model.schema;
 
 import java.util.List;
 import java.util.Set;
@@ -10,3 +10,5 @@ public record SchemaTableMetadata(
         List<SchemaForeignKeyMetadata> foreignKeys
 ) {
 }
+
+

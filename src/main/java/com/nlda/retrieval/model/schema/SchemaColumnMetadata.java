@@ -1,4 +1,4 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.model.schema;
 
 public record SchemaColumnMetadata(
         String name,
@@ -7,3 +7,5 @@ public record SchemaColumnMetadata(
         int ordinal
 ) {
 }
+
+

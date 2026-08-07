@@ -1,8 +1,8 @@
 package com.nlda.generation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nlda.retrieval.RetrievalContext;
-import com.nlda.retrieval.RetrievalMode;
+import com.nlda.retrieval.model.RetrievalContext;
+import com.nlda.retrieval.model.RetrievalMode;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

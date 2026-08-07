@@ -1,4 +1,4 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.model;
 
 public enum RetrievalMode {
     NORMALIZED,
@@ -6,3 +6,5 @@ public enum RetrievalMode {
     HYBRID,
     FALLBACK_CACHE
 }
+
+

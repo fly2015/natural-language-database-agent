@@ -1,6 +1,6 @@
 package com.nlda.generation;
 
-import com.nlda.retrieval.RetrievalContext;
+import com.nlda.retrieval.model.RetrievalContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

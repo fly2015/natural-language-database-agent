@@ -1,5 +1,12 @@
 package com.nlda.retrieval;
 
+import com.nlda.retrieval.contract.SchemaRetriever;
+import com.nlda.retrieval.model.RetrievalAttempt;
+import com.nlda.retrieval.model.RetrievalContext;
+import com.nlda.retrieval.model.RetrievalFailureCode;
+import com.nlda.retrieval.model.RetrievalMode;
+import com.nlda.retrieval.model.RetrievedChunk;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

@@ -1,5 +1,10 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.index;
 
+import com.nlda.retrieval.contract.SchemaChunkRepository;
+import com.nlda.retrieval.metadata.JdbcSchemaMetadataExtractor;
+import com.nlda.retrieval.model.IndexedSchemaChunks;
+import com.nlda.retrieval.model.RetrievedChunk;
+import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -56,3 +61,5 @@ public class SchemaIndexService {
                 });
     }
 }
+
+

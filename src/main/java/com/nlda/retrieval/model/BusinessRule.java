@@ -1,4 +1,4 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.model;
 
 import java.util.Set;
 
@@ -9,3 +9,5 @@ public record BusinessRule(
         Set<String> aliases
 ) {
 }
+
+
