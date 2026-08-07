@@ -10,9 +10,9 @@ import com.nlda.generation.SqlGenerationProperties;
 import com.nlda.generation.SqlGenerationService;
 import com.nlda.guardrail.GuardrailResult;
 import com.nlda.guardrail.SqlGuardrailService;
-import com.nlda.retrieval.RetrievalContext;
-import com.nlda.retrieval.RetrievalMode;
 import com.nlda.retrieval.RetrievalService;
+import com.nlda.retrieval.model.RetrievalContext;
+import com.nlda.retrieval.model.RetrievalMode;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;

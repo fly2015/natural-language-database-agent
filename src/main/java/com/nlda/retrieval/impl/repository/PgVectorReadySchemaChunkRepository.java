@@ -1,4 +1,8 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.impl.repository;
+
+import com.nlda.retrieval.contract.SchemaChunkRepository;
+import com.nlda.retrieval.model.IndexedSchemaChunks;
+import com.nlda.retrieval.model.RetrievedChunk;
 
 import org.springframework.stereotype.Repository;
 
@@ -28,3 +32,5 @@ public class PgVectorReadySchemaChunkRepository implements SchemaChunkRepository
                 .orElse(List.of());
     }
 }
+
+

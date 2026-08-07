@@ -1,4 +1,7 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.contract;
+
+import com.nlda.retrieval.model.RetrievalMode;
+import com.nlda.retrieval.model.RetrievedChunk;
 
 import java.util.List;
 
@@ -8,3 +11,5 @@ public interface SchemaRetriever {
 
     List<RetrievedChunk> fallback(String query);
 }
+
+

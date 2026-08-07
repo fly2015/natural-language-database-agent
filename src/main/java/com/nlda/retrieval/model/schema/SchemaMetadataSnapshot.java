@@ -1,4 +1,4 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.model.schema;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -46,3 +46,5 @@ public record SchemaMetadataSnapshot(
         return builder.toString();
     }
 }
+
+

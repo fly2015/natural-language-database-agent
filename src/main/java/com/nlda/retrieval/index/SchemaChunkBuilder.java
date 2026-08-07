@@ -1,4 +1,12 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.index;
+
+import com.nlda.retrieval.contract.BusinessRuleSource;
+import com.nlda.retrieval.model.BusinessRule;
+import com.nlda.retrieval.model.RetrievedChunk;
+import com.nlda.retrieval.model.schema.SchemaColumnMetadata;
+import com.nlda.retrieval.model.schema.SchemaForeignKeyMetadata;
+import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
+import com.nlda.retrieval.model.schema.SchemaTableMetadata;
 
 import org.springframework.stereotype.Component;
 
@@ -77,3 +85,5 @@ public class SchemaChunkBuilder {
         return String.join(", ", values);
     }
 }
+
+

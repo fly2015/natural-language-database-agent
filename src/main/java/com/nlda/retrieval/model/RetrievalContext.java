@@ -1,4 +1,4 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.model;
 
 import java.util.List;
 
@@ -12,3 +12,5 @@ public record RetrievalContext(
         List<RetrievalAttempt> attempts
 ) {
 }
+
+

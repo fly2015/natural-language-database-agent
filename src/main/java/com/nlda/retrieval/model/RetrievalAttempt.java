@@ -1,4 +1,4 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.model;
 
 public record RetrievalAttempt(
         int attemptNumber,
@@ -8,3 +8,5 @@ public record RetrievalAttempt(
         int resultCount
 ) {
 }
+
+

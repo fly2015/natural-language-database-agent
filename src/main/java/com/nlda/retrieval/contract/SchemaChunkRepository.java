@@ -1,4 +1,7 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.contract;
+
+import com.nlda.retrieval.model.IndexedSchemaChunks;
+import com.nlda.retrieval.model.RetrievedChunk;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,3 +14,5 @@ public interface SchemaChunkRepository {
 
     List<RetrievedChunk> fallbackChunks();
 }
+
+

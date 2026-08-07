@@ -1,4 +1,7 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.impl.rules;
+
+import com.nlda.retrieval.contract.BusinessRuleSource;
+import com.nlda.retrieval.model.BusinessRule;
 
 import org.springframework.stereotype.Component;
 
@@ -32,3 +35,5 @@ public class CuratedBusinessRuleSource implements BusinessRuleSource {
         );
     }
 }
+
+

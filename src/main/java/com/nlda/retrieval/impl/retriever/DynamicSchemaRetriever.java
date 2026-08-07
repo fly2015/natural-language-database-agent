@@ -1,4 +1,9 @@
-package com.nlda.retrieval;
+﻿package com.nlda.retrieval.impl.retriever;
+
+import com.nlda.retrieval.contract.SchemaRetriever;
+import com.nlda.retrieval.index.SchemaIndexService;
+import com.nlda.retrieval.model.RetrievalMode;
+import com.nlda.retrieval.model.RetrievedChunk;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,3 +117,5 @@ public class DynamicSchemaRetriever implements SchemaRetriever {
         return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").strip();
     }
 }
+
+

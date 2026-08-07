@@ -1,4 +1,9 @@
-package com.nlda.retrieval;
+package com.nlda.retrieval.metadata;
+
+import com.nlda.retrieval.model.schema.SchemaColumnMetadata;
+import com.nlda.retrieval.model.schema.SchemaForeignKeyMetadata;
+import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
+import com.nlda.retrieval.model.schema.SchemaTableMetadata;
 
 import org.springframework.stereotype.Component;
 
