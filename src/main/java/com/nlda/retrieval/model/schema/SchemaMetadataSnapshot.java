@@ -1,4 +1,4 @@
-﻿package com.nlda.retrieval.model.schema;
+package com.nlda.retrieval.model.schema;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 
 public record SchemaMetadataSnapshot(
         List<SchemaTableMetadata> tables
@@ -24,6 +25,24 @@ public record SchemaMetadataSnapshot(
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 is not available.", ex);
         }
+    }
+
+    public boolean containsSchemaRef(String schemaRef) {
+        String normalized = schemaRef == null ? "" : schemaRef.toLowerCase(Locale.ROOT).strip();
+        if (normalized.isBlank()) {
+            return false;
+        }
+        String[] parts = normalized.split("\\.");
+        for (SchemaTableMetadata table : tables) {
+            if (parts.length == 1 && table.name().equals(normalized)) {
+                return true;
+            }
+            if (parts.length == 2 && table.name().equals(parts[0])
+                    && table.columns().stream().anyMatch(column -> column.name().equals(parts[1]))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String canonical() {
@@ -46,5 +65,4 @@ public record SchemaMetadataSnapshot(
         return builder.toString();
     }
 }
-
 

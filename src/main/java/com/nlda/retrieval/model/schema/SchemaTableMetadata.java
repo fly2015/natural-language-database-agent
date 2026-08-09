@@ -1,4 +1,4 @@
-﻿package com.nlda.retrieval.model.schema;
+package com.nlda.retrieval.model.schema;
 
 import java.util.List;
 import java.util.Set;

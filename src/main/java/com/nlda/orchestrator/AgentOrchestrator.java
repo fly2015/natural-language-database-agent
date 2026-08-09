@@ -63,14 +63,16 @@ public class AgentOrchestrator {
         {
             GeneratedSql repairedSql = sqlGenerationService.repair(question, context, generatedSql.sql(),
                     guardrail.violations());
-            if (!"OK".equals(repairedSql.status())) {
+            if (!"OK".equals(repairedSql.status()))
+            {
                 auditLogger.record(traceId, question, generatedSql.sql(), "DENY", "REPAIR_REJECTED");
                 return rejected(traceId, started, repairedSql.reason());
             }
             generatedSql = repairedSql;
             guardrail = guardrailService.validateAndSanitize(generatedSql.sql());
         }
-        if (!guardrail.allowed()) {
+        if (!guardrail.allowed())
+        {
             auditLogger.record(traceId, question, generatedSql.sql(), "DENY", "REJECTED");
             return rejected(traceId, started, String.join(" ", guardrail.violations()));
         }

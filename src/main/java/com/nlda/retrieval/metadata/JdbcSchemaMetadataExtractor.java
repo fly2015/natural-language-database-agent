@@ -1,5 +1,6 @@
 package com.nlda.retrieval.metadata;
 
+import com.nlda.retrieval.contract.SchemaMetadataProvider;
 import com.nlda.retrieval.model.schema.SchemaColumnMetadata;
 import com.nlda.retrieval.model.schema.SchemaForeignKeyMetadata;
 import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
@@ -22,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Component
-public class JdbcSchemaMetadataExtractor {
+public class JdbcSchemaMetadataExtractor implements SchemaMetadataProvider {
 
     private static final Set<String> SYSTEM_SCHEMAS = Set.of("information_schema", "pg_catalog", "sys");
 
@@ -32,6 +33,12 @@ public class JdbcSchemaMetadataExtractor {
         this.dataSource = dataSource;
     }
 
+    @Override
+    public String dialect() {
+        return "generic-jdbc";
+    }
+
+    @Override
     public SchemaMetadataSnapshot extract() {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();

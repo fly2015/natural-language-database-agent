@@ -1,5 +1,18 @@
 package com.nlda.retrieval;
 
+import com.nlda.retrieval.contract.SchemaRetriever;
+import com.nlda.retrieval.contract.SchemaMetadataProvider;
+import com.nlda.retrieval.index.SchemaIndexService;
+import com.nlda.retrieval.metadata.JdbcSchemaMetadataExtractor;
+import com.nlda.retrieval.model.ChunkKind;
+import com.nlda.retrieval.model.IndexedSchemaChunks;
+import com.nlda.retrieval.model.RetrievalMode;
+import com.nlda.retrieval.model.RetrievedChunk;
+import com.nlda.retrieval.query.ProcessedQuery;
+import com.nlda.retrieval.model.schema.SchemaColumnMetadata;
+import com.nlda.retrieval.model.schema.SchemaForeignKeyMetadata;
+import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
+import com.nlda.retrieval.model.schema.SchemaTableMetadata;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,6 +26,9 @@ class DynamicSchemaRetrievalIntegrationTest {
 
     @Autowired
     private JdbcSchemaMetadataExtractor metadataExtractor;
+
+    @Autowired
+    private SchemaMetadataProvider metadataProvider;
 
     @Autowired
     private SchemaIndexService schemaIndexService;
@@ -38,15 +54,33 @@ class DynamicSchemaRetrievalIntegrationTest {
     }
 
     @Test
+    void exposesSchemaExtractionBehindMetadataProviderBoundary() {
+        SchemaMetadataSnapshot snapshot = metadataProvider.extract();
+
+        assertThat(metadataProvider.dialect()).isEqualTo("generic-jdbc");
+        assertThat(snapshot.tables()).extracting(SchemaTableMetadata::name).contains("customers");
+    }
+
+    @Test
     void refreshBuildsDynamicChunksAndRetrievalUsesThem() {
         IndexedSchemaChunks indexed = schemaIndexService.refresh();
 
         assertThat(indexed.fingerprint()).isNotBlank();
         assertThat(indexed.chunks()).anySatisfy(chunk -> assertThat(chunk.text())
                 .contains("table: orders", "foreign keys:", "customer_id -> customers.id"));
-        assertThat(indexed.chunks()).anySatisfy(chunk -> assertThat(chunk.id()).startsWith("rule."));
+        assertThat(indexed.chunks()).anySatisfy(chunk -> {
+            assertThat(chunk.kind()).isEqualTo(ChunkKind.BUSINESS_RULE);
+            assertThat(chunk.id()).startsWith("rule.");
+        });
+        assertThat(indexed.chunks()).anySatisfy(chunk -> {
+            assertThat(chunk.kind()).isEqualTo(ChunkKind.JOIN_PATH);
+            assertThat(chunk.text()).contains("join path:");
+        });
 
-        List<RetrievedChunk> chunks = schemaRetriever.retrieve("Show top customers by revenue", RetrievalMode.NORMALIZED);
+        List<RetrievedChunk> chunks = schemaRetriever.retrieve(
+                processedQuery("Show top customers by revenue"),
+                RetrievalMode.NORMALIZED
+        );
 
         assertThat(chunks).isNotEmpty();
         assertThat(chunks).anySatisfy(chunk -> assertThat(chunk.text()).contains("orders"));
@@ -58,5 +92,10 @@ class DynamicSchemaRetrievalIntegrationTest {
                 .filter(table -> table.name().equals(name))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private ProcessedQuery processedQuery(String value) {
+        return new ProcessedQuery(value, value.toLowerCase(), List.of(), List.of(), java.util.Set.of(),
+                value.toLowerCase(), false, 1.0);
     }
 }

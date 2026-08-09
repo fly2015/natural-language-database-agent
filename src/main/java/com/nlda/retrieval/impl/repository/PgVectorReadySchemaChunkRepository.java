@@ -1,4 +1,4 @@
-﻿package com.nlda.retrieval.impl.repository;
+package com.nlda.retrieval.impl.repository;
 
 import com.nlda.retrieval.contract.SchemaChunkRepository;
 import com.nlda.retrieval.model.IndexedSchemaChunks;
