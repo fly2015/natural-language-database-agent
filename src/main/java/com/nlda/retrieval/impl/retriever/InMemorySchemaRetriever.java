@@ -1,8 +1,9 @@
-﻿package com.nlda.retrieval.impl.retriever;
+package com.nlda.retrieval.impl.retriever;
 
 import com.nlda.retrieval.contract.SchemaRetriever;
 import com.nlda.retrieval.model.RetrievalMode;
 import com.nlda.retrieval.model.RetrievedChunk;
+import com.nlda.retrieval.query.ProcessedQuery;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -28,8 +29,8 @@ public class InMemorySchemaRetriever implements SchemaRetriever {
     );
 
     @Override
-    public List<RetrievedChunk> retrieve(String query, RetrievalMode mode) {
-        String normalized = normalize(query);
+    public List<RetrievedChunk> retrieve(ProcessedQuery query, RetrievalMode mode) {
+        String normalized = normalize(query.retrievalQuery());
         List<RetrievedChunk> scored = new ArrayList<>();
         for (RetrievedChunk chunk : CHUNKS) {
             double score = score(normalized, chunk, mode);
@@ -44,8 +45,8 @@ public class InMemorySchemaRetriever implements SchemaRetriever {
     }
 
     @Override
-    public List<RetrievedChunk> fallback(String query) {
-        String normalized = normalize(query);
+    public List<RetrievedChunk> fallback(ProcessedQuery query) {
+        String normalized = normalize(query.retrievalQuery());
         if (containsAny(normalized, "customer", "customers", "client", "clients", "order", "orders",
                 "sale", "sales", "revenue", "spending", "spend", "product", "products", "region")) {
             return CHUNKS.stream()
@@ -110,5 +111,4 @@ public class InMemorySchemaRetriever implements SchemaRetriever {
         return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").strip();
     }
 }
-
 

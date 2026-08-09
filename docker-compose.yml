@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: nlda-postgres
+    environment:
+      POSTGRES_DB: nlda
+      POSTGRES_USER: nlda
+      POSTGRES_PASSWORD: nlda
+    ports:
+      - "5432:5432"
+    volumes:
+      - nlda-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nlda -d nlda"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: nlda-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      POSTGRES_JDBC_URL: jdbc:postgresql://postgres:5432/nlda
+      POSTGRES_USER: nlda
+      POSTGRES_PASSWORD: nlda
+      AGENT_RETRIEVAL_VOCABULARY_PROVIDER: postgres-trgm
+      AGENT_RETRIEVAL_VECTOR_PROVIDER: pgvector
+      AGENT_RETRIEVAL_EMBEDDING_PROVIDER: fake
+      AGENT_RETRIEVAL_EMBEDDING_DIMENSIONS: 64
+      AGENT_DATASOURCE_ID: default
+      AGENT_LLM_PROVIDER: deterministic
+    ports:
+      - "8080:8080"
+
+volumes:
+  nlda-postgres-data:

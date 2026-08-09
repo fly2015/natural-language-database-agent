@@ -6,16 +6,20 @@ import com.nlda.retrieval.model.RetrievalContext;
 import com.nlda.retrieval.model.RetrievalFailureCode;
 import com.nlda.retrieval.model.RetrievalMode;
 import com.nlda.retrieval.model.RetrievedChunk;
+import com.nlda.retrieval.model.ChunkKind;
+import com.nlda.retrieval.query.ProcessedQuery;
+import com.nlda.retrieval.query.RetrievalQueryProcessor;
+import com.nlda.retrieval.text.TextNormalizer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -25,22 +29,44 @@ public class RetrievalService {
     private static final double CONFIDENCE_THRESHOLD = 0.65;
 
     private final SchemaRetriever schemaRetriever;
+    private final RetrievalQueryProcessor queryProcessor;
+    private final TextNormalizer textNormalizer;
 
-    public RetrievalService(SchemaRetriever schemaRetriever) {
+    @Autowired
+    public RetrievalService(
+            SchemaRetriever schemaRetriever,
+            RetrievalQueryProcessor queryProcessor,
+            TextNormalizer textNormalizer
+    ) {
         this.schemaRetriever = schemaRetriever;
+        this.queryProcessor = queryProcessor;
+        this.textNormalizer = textNormalizer;
+    }
+
+    RetrievalService(SchemaRetriever schemaRetriever) {
+        TextNormalizer normalizer = new TextNormalizer();
+        this.schemaRetriever = schemaRetriever;
+        this.textNormalizer = normalizer;
+        this.queryProcessor = new RetrievalQueryProcessor(
+                normalizer,
+                new com.nlda.retrieval.impl.vocabulary.InMemoryVocabularyCorrectionService(
+                        new com.nlda.retrieval.query.SchemaVocabularyMatcher(normalizer)
+                )
+        );
     }
 
     public RetrievalContext retrieve(String question) {
         List<RetrievalAttempt> attempts = new ArrayList<>();
-        RetrievalContext recovered = runAttempt(question, normalize(question), RetrievalMode.NORMALIZED, 1, attempts);
+        schemaRetriever.prepare();
+        RetrievalContext recovered = runAttempt(question, process(question), RetrievalMode.NORMALIZED, 1, attempts);
         if (recovered.proceed()) {
             return recovered;
         }
-        recovered = runAttempt(question, expandAliases(question), RetrievalMode.EXPANDED, 2, attempts);
+        recovered = runAttempt(question, process(expandedQuery(question)), RetrievalMode.EXPANDED, 2, attempts);
         if (recovered.proceed()) {
             return recovered;
         }
-        recovered = runAttempt(question, expandAliases(question), RetrievalMode.HYBRID, 3, attempts);
+        recovered = runAttempt(question, process(expandedQuery(question)), RetrievalMode.HYBRID, 3, attempts);
         if (recovered.proceed()) {
             return recovered;
         }
@@ -57,7 +83,7 @@ public class RetrievalService {
 
     private RetrievalContext runAttempt(
             String originalQuestion,
-            String retrievalQuery,
+            ProcessedQuery retrievalQuery,
             RetrievalMode mode,
             int attemptNumber,
             List<RetrievalAttempt> attempts
@@ -85,7 +111,8 @@ public class RetrievalService {
     }
 
     private RetrievalContext fallback(String question, List<RetrievalAttempt> attempts, String previousFailureCode) {
-        List<RetrievedChunk> chunks = schemaRetriever.fallback(question);
+        ProcessedQuery processedQuery = process(question);
+        List<RetrievedChunk> chunks = schemaRetriever.fallback(processedQuery);
         double confidence = confidence(question, chunks);
         String failureCode = chunks.isEmpty() ? RetrievalFailureCode.RF_01.code() : previousFailureCode;
         RetrievalAttempt attempt = new RetrievalAttempt(attempts.size() + 1, RetrievalMode.FALLBACK_CACHE, confidence,
@@ -139,48 +166,40 @@ public class RetrievalService {
         }
         double max = chunks.stream().mapToDouble(RetrievedChunk::score).max().orElse(0.0);
         double mean = chunks.stream().mapToDouble(RetrievedChunk::score).average().orElse(0.0);
-        double coverage = schemaCoverage(question, chunks);
-        double confidence = (max * 0.45) + (mean * 0.25) + (coverage * 0.30);
+        double coverage = contextCoverage(chunks);
+        double confidence = (max * 0.50) + (mean * 0.25) + (coverage * 0.25);
         return Math.min(0.95, Math.round(confidence * 100.0) / 100.0);
     }
 
-    private double schemaCoverage(String question, List<RetrievedChunk> chunks) {
-        String normalized = normalize(question);
-        Set<String> expected = new LinkedHashSet<>();
-        if (containsAny(normalized, "customer", "customers", "client", "clients", "region")) {
-            expected.add("customers");
-        }
-        if (containsAny(normalized, "order", "orders", "revenue", "spending", "spend", "sale", "sales",
-                "undelivered")) {
-            expected.add("orders");
-        }
-        if (containsAny(normalized, "product", "products")) {
-            expected.add("products");
-            expected.add("order_items");
-        }
-        if (expected.isEmpty()) {
-            return 0.0;
-        }
-        Set<String> actual = new LinkedHashSet<>();
+    private double contextCoverage(List<RetrievedChunk> chunks) {
+        Set<String> schemaRefs = new LinkedHashSet<>();
+        Set<ChunkKind> kinds = new LinkedHashSet<>();
         for (RetrievedChunk chunk : chunks) {
-            actual.addAll(chunk.schemaRefs());
+            schemaRefs.addAll(chunk.schemaRefs());
+            kinds.add(chunk.kind());
         }
-        long covered = expected.stream().filter(actual::contains).count();
-        return (double) covered / expected.size();
+        double schemaDiversity = Math.min(1.0, schemaRefs.size() / 3.0);
+        double typedDiversity = Math.min(1.0, kinds.size() / 3.0);
+        return (schemaDiversity * 0.65) + (typedDiversity * 0.35);
     }
 
-    private String expandAliases(String question) {
+    private String expandedQuery(String question) {
         String normalized = normalize(question);
-        return normalized
-                .replace("clients", "clients customers")
-                .replace("client", "client customer")
-                .replace("sales", "sales orders revenue")
-                .replace("sale", "sale order revenue")
-                .replace("spend", "spend spending revenue");
+        StringBuilder expanded = new StringBuilder(normalized);
+        for (String token : normalized.split(" ")) {
+            if (token.endsWith("s") && token.length() > 3) {
+                expanded.append(' ').append(token, 0, token.length() - 1);
+            }
+        }
+        return expanded.toString();
     }
 
     private String normalize(String value) {
-        return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").strip();
+        return textNormalizer.normalize(value);
+    }
+
+    private ProcessedQuery process(String value) {
+        return queryProcessor.process(value);
     }
 
     private String safeStopReason() {
@@ -194,12 +213,4 @@ public class RetrievalService {
                 attempt.resultCount());
     }
 
-    private boolean containsAny(String value, String... terms) {
-        for (String term : terms) {
-            if (value.contains(term)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

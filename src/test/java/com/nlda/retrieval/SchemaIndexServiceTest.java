@@ -1,5 +1,19 @@
 package com.nlda.retrieval;
 
+import com.nlda.retrieval.impl.repository.PgVectorReadySchemaChunkRepository;
+import com.nlda.retrieval.impl.retriever.DynamicSchemaRetriever;
+import com.nlda.retrieval.index.SchemaChunkBuilder;
+import com.nlda.retrieval.index.SchemaIndexService;
+import com.nlda.retrieval.metadata.JdbcSchemaMetadataExtractor;
+import com.nlda.retrieval.metadata.SchemaMetadataException;
+import com.nlda.retrieval.model.IndexedSchemaChunks;
+import com.nlda.retrieval.model.RetrievalAttempt;
+import com.nlda.retrieval.model.RetrievalContext;
+import com.nlda.retrieval.model.RetrievalMode;
+import com.nlda.retrieval.model.RetrievedChunk;
+import com.nlda.retrieval.model.schema.SchemaColumnMetadata;
+import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
+import com.nlda.retrieval.model.schema.SchemaTableMetadata;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -34,12 +48,12 @@ class SchemaIndexServiceTest {
     void fallbackCanUsePreviousIndexWhenDynamicExtractionFails() {
         PgVectorReadySchemaChunkRepository repository = new PgVectorReadySchemaChunkRepository();
         repository.replace(new IndexedSchemaChunks("known", List.of(
-                new RetrievedChunk("schema.customers", "table: customers; columns: id BIGINT, name VARCHAR",
+                RetrievedChunk.schema("schema.customers", "table: customers; columns: id BIGINT, name VARCHAR",
                         0.75, Set.of("customers")),
-                new RetrievedChunk("schema.orders", "table: orders; columns: id BIGINT, customer_id BIGINT, total_amount DECIMAL",
+                RetrievedChunk.schema("schema.orders", "table: orders; columns: id BIGINT, customer_id BIGINT, total_amount DECIMAL",
                         0.75, Set.of("orders", "customers")),
-                new RetrievedChunk("rule.revenue", "Business rule: revenue and spending use orders.total_amount.",
-                        0.75, Set.of("orders"))
+                RetrievedChunk.businessRule("rule.revenue", "Business rule: revenue and spending use orders.total_amount.",
+                        0.75, Set.of("orders"), Set.of("revenue", "spending"))
         )));
         SchemaIndexService indexService = new SchemaIndexService(
                 new FailingMetadataExtractor(),

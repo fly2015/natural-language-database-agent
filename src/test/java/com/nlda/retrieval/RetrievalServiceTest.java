@@ -1,5 +1,13 @@
 package com.nlda.retrieval;
 
+import com.nlda.retrieval.contract.SchemaRetriever;
+import com.nlda.retrieval.impl.retriever.InMemorySchemaRetriever;
+import com.nlda.retrieval.model.ChunkKind;
+import com.nlda.retrieval.model.RetrievalAttempt;
+import com.nlda.retrieval.model.RetrievalContext;
+import com.nlda.retrieval.model.RetrievalMode;
+import com.nlda.retrieval.model.RetrievedChunk;
+import com.nlda.retrieval.query.ProcessedQuery;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -28,9 +36,11 @@ class RetrievalServiceTest {
     void retriesLowConfidenceAndUsesFallbackCache() {
         RetrievedChunk weakChunk = new RetrievedChunk("weak.orders", "orders(id)", 0.20, Set.of("orders"));
         List<RetrievedChunk> fallback = List.of(
-                new RetrievedChunk("schema.customers", "customers(id, name, region, vip)", 0.72, Set.of("customers")),
-                new RetrievedChunk("schema.orders", "orders(id, customer_id, total_amount)", 0.72,
-                        Set.of("orders", "customers"))
+                RetrievedChunk.schema("schema.customers", "customers(id, name, region, vip)", 0.72, Set.of("customers")),
+                RetrievedChunk.schema("schema.orders", "orders(id, customer_id, total_amount)", 0.72,
+                        Set.of("orders", "customers")),
+                RetrievedChunk.businessRule("rule.spending", "Business rule: spending uses orders.total_amount.", 0.72,
+                        Set.of("orders"), Set.of("spending"))
         );
         RetrievalService service = new RetrievalService(new StaticSchemaRetriever(List.of(weakChunk), fallback));
 
@@ -80,8 +90,10 @@ class RetrievalServiceTest {
     @Test
     void validationFailureIsTrackedAsRf04BeforeFallback() {
         List<RetrievedChunk> fallback = List.of(
-                new RetrievedChunk("schema.orders", "orders(id, customer_id, total_amount)", 0.75, Set.of("orders")),
-                new RetrievedChunk("schema.customers", "customers(id, name)", 0.75, Set.of("customers"))
+                RetrievedChunk.schema("schema.orders", "orders(id, customer_id, total_amount)", 0.75, Set.of("orders")),
+                RetrievedChunk.schema("schema.customers", "customers(id, name)", 0.75, Set.of("customers")),
+                RetrievedChunk.businessRule("rule.spending", "Business rule: spending uses orders.total_amount.", 0.75,
+                        Set.of("orders"), Set.of("spending"))
         );
         RetrievalService service = new RetrievalService(new StaticSchemaRetriever(List.of(), fallback));
         RetrievalContext previous = new RetrievalContext(true, 0.70, List.of("stale schema"), "", "NONE",
@@ -94,18 +106,36 @@ class RetrievalServiceTest {
         assertThat(context.finalMode()).isEqualTo(RetrievalMode.FALLBACK_CACHE);
     }
 
+    @Test
+    void confidenceUsesTypedContextWithoutDomainSpecificCoverage() {
+        List<RetrievedChunk> chunks = List.of(
+                RetrievedChunk.schema("schema.invoices", "table: invoices; columns: id, amount, account_id",
+                        0.70, Set.of("invoices")),
+                RetrievedChunk.schema("schema.accounts", "table: accounts; columns: id, name",
+                        0.70, Set.of("accounts")),
+                RetrievedChunk.businessRule("rule.arr", "Business rule: ARR means invoice amount.", 0.70,
+                        Set.of("invoices"), Set.of("arr"))
+        );
+        RetrievalService service = new RetrievalService(new StaticSchemaRetriever(chunks, List.of()));
+
+        RetrievalContext context = service.retrieve("Show ARR by account");
+
+        assertThat(context.proceed()).isTrue();
+        assertThat(context.snippets()).anySatisfy(snippet -> assertThat(snippet).contains("ARR"));
+    }
+
     private record StaticSchemaRetriever(
             List<RetrievedChunk> chunks,
             List<RetrievedChunk> fallbackChunks
     ) implements SchemaRetriever {
 
         @Override
-        public List<RetrievedChunk> retrieve(String query, RetrievalMode mode) {
+        public List<RetrievedChunk> retrieve(ProcessedQuery query, RetrievalMode mode) {
             return chunks;
         }
 
         @Override
-        public List<RetrievedChunk> fallback(String query) {
+        public List<RetrievedChunk> fallback(ProcessedQuery query) {
             return fallbackChunks;
         }
     }
@@ -113,12 +143,12 @@ class RetrievalServiceTest {
     private static class TimeoutSchemaRetriever implements SchemaRetriever {
 
         @Override
-        public List<RetrievedChunk> retrieve(String query, RetrievalMode mode) {
+        public List<RetrievedChunk> retrieve(ProcessedQuery query, RetrievalMode mode) {
             throw new IllegalStateException("vector service timeout");
         }
 
         @Override
-        public List<RetrievedChunk> fallback(String query) {
+        public List<RetrievedChunk> fallback(ProcessedQuery query) {
             return List.of();
         }
     }

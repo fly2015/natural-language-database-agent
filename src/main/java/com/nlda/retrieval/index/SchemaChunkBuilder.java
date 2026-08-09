@@ -1,13 +1,16 @@
-﻿package com.nlda.retrieval.index;
+package com.nlda.retrieval.index;
 
 import com.nlda.retrieval.contract.BusinessRuleSource;
 import com.nlda.retrieval.model.BusinessRule;
+import com.nlda.retrieval.model.ChunkKind;
 import com.nlda.retrieval.model.RetrievedChunk;
 import com.nlda.retrieval.model.schema.SchemaColumnMetadata;
 import com.nlda.retrieval.model.schema.SchemaForeignKeyMetadata;
 import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
 import com.nlda.retrieval.model.schema.SchemaTableMetadata;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -17,6 +20,8 @@ import java.util.Set;
 
 @Component
 public class SchemaChunkBuilder {
+
+    private static final Logger log = LoggerFactory.getLogger(SchemaChunkBuilder.class);
 
     private final BusinessRuleSource businessRuleSource;
 
@@ -28,10 +33,16 @@ public class SchemaChunkBuilder {
         List<RetrievedChunk> chunks = new ArrayList<>();
         for (SchemaTableMetadata table : snapshot.tables()) {
             chunks.add(tableChunk(table));
+            chunks.addAll(joinPathChunks(table));
         }
         for (BusinessRule rule : businessRuleSource.rules()) {
-            chunks.add(new RetrievedChunk(rule.id(), rule.text() + " Aliases: " + aliases(rule),
-                    0.0, rule.schemaRefs()));
+            Set<String> staleRefs = staleRefs(rule, snapshot);
+            if (!staleRefs.isEmpty()) {
+                log.warn("businessRuleExcluded id={} staleSchemaRefs={}", rule.id(), staleRefs);
+                continue;
+            }
+            chunks.add(RetrievedChunk.businessRule(rule.id(), rule.text() + " Aliases: " + aliases(rule),
+                    0.0, rule.schemaRefs(), rule.aliases()));
         }
         return List.copyOf(chunks);
     }
@@ -46,7 +57,26 @@ public class SchemaChunkBuilder {
                 + "; columns: " + columns(table.columns())
                 + "; primary key: " + emptyDefault(table.primaryKeys(), "none")
                 + "; foreign keys: " + foreignKeys(table.foreignKeys());
-        return new RetrievedChunk("schema." + table.name(), text, 0.0, schemaRefs);
+        return RetrievedChunk.schema("schema." + table.name(), text, 0.0, schemaRefs);
+    }
+
+    private List<RetrievedChunk> joinPathChunks(SchemaTableMetadata table) {
+        List<RetrievedChunk> chunks = new ArrayList<>();
+        for (SchemaForeignKeyMetadata foreignKey : table.foreignKeys()) {
+            Set<String> schemaRefs = new LinkedHashSet<>();
+            schemaRefs.add(table.name());
+            schemaRefs.add(foreignKey.referencedTable());
+            String text = "join path: " + table.name() + " -> " + foreignKey.referencedTable()
+                    + "; key: " + table.name() + "." + foreignKey.columnName()
+                    + " = " + foreignKey.referencedTable() + "." + foreignKey.referencedColumn();
+            chunks.add(RetrievedChunk.joinPath(
+                    "join." + table.name() + "." + foreignKey.referencedTable() + "." + foreignKey.columnName(),
+                    text,
+                    0.0,
+                    schemaRefs
+            ));
+        }
+        return chunks;
     }
 
     private String columns(List<SchemaColumnMetadata> columns) {
@@ -84,6 +114,14 @@ public class SchemaChunkBuilder {
         }
         return String.join(", ", values);
     }
+
+    private Set<String> staleRefs(BusinessRule rule, SchemaMetadataSnapshot snapshot) {
+        Set<String> staleRefs = new LinkedHashSet<>();
+        for (String schemaRef : rule.schemaRefs()) {
+            if (!snapshot.containsSchemaRef(schemaRef)) {
+                staleRefs.add(schemaRef);
+            }
+        }
+        return staleRefs;
+    }
 }
-
-

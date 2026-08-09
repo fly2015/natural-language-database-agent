@@ -1,0 +1,32 @@
+agent:
+  retrieval:
+    business-rules:
+      - id: rule.revenue
+        text: "Business rule: revenue and spending use monetary orders.total_amount unless product-level revenue is needed."
+        schema-refs:
+          - orders
+          - order_items
+          - products
+        aliases:
+          - revenue
+          - spending
+          - spend
+          - sales
+          - sale
+      - id: rule.undelivered
+        text: "Business rule: undelivered orders are any orders where orders.status is not DELIVERED."
+        schema-refs:
+          - orders
+        aliases:
+          - undelivered
+          - pending
+          - shipped
+      - id: rule.customer_alias
+        text: "Business rule: client and customer refer to rows in customers."
+        schema-refs:
+          - customers
+        aliases:
+          - client
+          - clients
+          - customer
+          - customers

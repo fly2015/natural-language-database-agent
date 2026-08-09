@@ -1,4 +1,4 @@
-﻿package com.nlda.retrieval.model;
+package com.nlda.retrieval.model;
 
 public enum RetrievalFailureCode {
     NONE("NONE"),
