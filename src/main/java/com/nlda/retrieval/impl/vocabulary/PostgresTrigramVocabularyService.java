@@ -131,6 +131,10 @@ public class PostgresTrigramVocabularyService implements VocabularyCorrectionSer
                        AND (
                            normalized_term = ?
                            OR similarity(normalized_term, ?) >= ?
+                           OR (
+                               left(normalized_term, 1) = left(?, 1)
+                               AND abs(length(normalized_term) - length(?)) <= 2
+                           )
                        )
                      ORDER BY score DESC, length(normalized_term), normalized_term
                      LIMIT ?
@@ -142,13 +146,16 @@ public class PostgresTrigramVocabularyService implements VocabularyCorrectionSer
                     normalized,
                     normalized,
                     properties.similarityThreshold(),
-                    properties.maxCandidates()
+                    normalized,
+                    normalized,
+                    properties.maxCandidates() * 10
             );
-            if (candidates.isEmpty()) {
+            List<CorrectionCandidate> ranked = rankCandidates(normalized, candidates);
+            if (ranked.isEmpty()) {
                 return List.of();
             }
-            CorrectionCandidate best = candidates.getFirst();
-            boolean ambiguous = candidates.stream()
+            CorrectionCandidate best = ranked.getFirst();
+            boolean ambiguous = ranked.stream()
                     .skip(1)
                     .anyMatch(candidate -> Math.abs(candidate.score() - best.score()) <= properties.ambiguityDelta());
             return List.of(new CorrectionCandidate(
@@ -164,6 +171,38 @@ public class PostgresTrigramVocabularyService implements VocabularyCorrectionSer
             log.warn("retrievalVocabularyCorrectionFailed token={} message={}", token, ex.getMessage());
             return List.of();
         }
+    }
+
+    private List<CorrectionCandidate> rankCandidates(String normalized, List<CorrectionCandidate> candidates) {
+        return candidates.stream()
+                .map(candidate -> rerank(normalized, candidate))
+                .filter(candidate -> candidate.exact()
+                        || candidate.score() >= properties.similarityThreshold()
+                        || editDistance(normalized, candidate.corrected()) <= maxDistance(
+                        Math.max(normalized.length(), candidate.corrected().length())))
+                .sorted(java.util.Comparator.comparingDouble(CorrectionCandidate::score).reversed()
+                        .thenComparing(candidate -> editDistance(normalized, candidate.corrected()))
+                        .thenComparing(CorrectionCandidate::corrected))
+                .limit(properties.maxCandidates())
+                .toList();
+    }
+
+    private CorrectionCandidate rerank(String normalized, CorrectionCandidate candidate) {
+        if (candidate.exact()) {
+            return candidate;
+        }
+        int maxLength = Math.max(normalized.length(), candidate.corrected().length());
+        double editScore = 1.0 - ((double) editDistance(normalized, candidate.corrected()) / maxLength);
+        double combinedScore = Math.max(candidate.score(), editScore);
+        return new CorrectionCandidate(
+                candidate.original(),
+                candidate.corrected(),
+                candidate.sourceType(),
+                candidate.sourceId(),
+                combinedScore,
+                false,
+                candidate.ambiguous()
+        );
     }
 
     private CorrectionCandidate toCandidate(String original, String normalized, ResultSet rs) throws SQLException {
@@ -240,6 +279,41 @@ public class PostgresTrigramVocabularyService implements VocabularyCorrectionSer
             values.add(part);
         }
         return values;
+    }
+
+    private int maxDistance(int maxLength) {
+        if (maxLength <= 5) {
+            return 1;
+        }
+        if (maxLength <= 9) {
+            return 2;
+        }
+        return 3;
+    }
+
+    private int editDistance(String first, String second) {
+        int[][] costs = new int[first.length() + 1][second.length() + 1];
+        for (int i = 0; i <= first.length(); i++) {
+            costs[i][0] = i;
+        }
+        for (int j = 0; j <= second.length(); j++) {
+            costs[0][j] = j;
+        }
+        for (int i = 1; i <= first.length(); i++) {
+            for (int j = 1; j <= second.length(); j++) {
+                int replacement = first.charAt(i - 1) == second.charAt(j - 1) ? 0 : 1;
+                costs[i][j] = Math.min(
+                        Math.min(costs[i - 1][j] + 1, costs[i][j - 1] + 1),
+                        costs[i - 1][j - 1] + replacement
+                );
+                if (i > 1 && j > 1
+                        && first.charAt(i - 1) == second.charAt(j - 2)
+                        && first.charAt(i - 2) == second.charAt(j - 1)) {
+                    costs[i][j] = Math.min(costs[i][j], costs[i - 2][j - 2] + 1);
+                }
+            }
+        }
+        return costs[first.length()][second.length()];
     }
 
     private record VocabularyEntry(

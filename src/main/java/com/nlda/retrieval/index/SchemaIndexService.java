@@ -24,8 +24,9 @@ public class SchemaIndexService {
     private final SchemaChunkRepository chunkRepository;
     private final List<RetrievalVocabularyIndexService> vocabularyIndexServices;
     private final EmbeddingIndexService embeddingIndexService;
+    private volatile String vocabularyFingerprint = "";
+    private volatile String embeddingFingerprint = "";
 
-    @Autowired
     public SchemaIndexService(
             SchemaMetadataProvider metadataProvider,
             SchemaChunkBuilder chunkBuilder,
@@ -38,6 +39,7 @@ public class SchemaIndexService {
         this.embeddingIndexService = null;
     }
 
+    @Autowired
     public SchemaIndexService(
             SchemaMetadataProvider metadataProvider,
             SchemaChunkBuilder chunkBuilder,
@@ -69,8 +71,7 @@ public class SchemaIndexService {
         List<RetrievedChunk> chunks = chunkBuilder.build(snapshot);
         IndexedSchemaChunks indexed = new IndexedSchemaChunks(snapshot.fingerprint(), chunks);
         chunkRepository.replace(indexed);
-        rebuildVocabulary(snapshot, chunks);
-        rebuildEmbeddings(indexed);
+        rebuildSupportIndexes(snapshot, indexed);
         log.info("schemaIndexRefresh dialect={} fingerprint={} chunkCount={}", metadataProvider.dialect(),
                 indexed.fingerprint(), indexed.chunks().size());
         return indexed;
@@ -80,12 +81,15 @@ public class SchemaIndexService {
         SchemaMetadataSnapshot snapshot = metadataProvider.extract();
         return chunkRepository.current()
                 .filter(existing -> existing.fingerprint().equals(snapshot.fingerprint()))
+                .map(existing -> {
+                    rebuildSupportIndexes(snapshot, existing);
+                    return existing;
+                })
                 .orElseGet(() -> {
                     List<RetrievedChunk> chunks = chunkBuilder.build(snapshot);
                     IndexedSchemaChunks indexed = new IndexedSchemaChunks(snapshot.fingerprint(), chunks);
                     chunkRepository.replace(indexed);
-                    rebuildVocabulary(snapshot, chunks);
-                    rebuildEmbeddings(indexed);
+                    rebuildSupportIndexes(snapshot, indexed);
                     log.info("schemaIndexBuild dialect={} fingerprint={} chunkCount={}", metadataProvider.dialect(),
                             indexed.fingerprint(), indexed.chunks().size());
                     return indexed;
@@ -96,11 +100,22 @@ public class SchemaIndexService {
         for (RetrievalVocabularyIndexService vocabularyIndexService : vocabularyIndexServices) {
             vocabularyIndexService.rebuild(snapshot, chunks);
         }
+        vocabularyFingerprint = snapshot.fingerprint();
     }
 
     private void rebuildEmbeddings(IndexedSchemaChunks indexed) {
         if (embeddingIndexService != null) {
             embeddingIndexService.rebuild(indexed.fingerprint(), indexed.chunks());
+        }
+        embeddingFingerprint = indexed.fingerprint();
+    }
+
+    private void rebuildSupportIndexes(SchemaMetadataSnapshot snapshot, IndexedSchemaChunks indexed) {
+        if (!indexed.fingerprint().equals(vocabularyFingerprint)) {
+            rebuildVocabulary(snapshot, indexed.chunks());
+        }
+        if (!indexed.fingerprint().equals(embeddingFingerprint)) {
+            rebuildEmbeddings(indexed);
         }
     }
 }

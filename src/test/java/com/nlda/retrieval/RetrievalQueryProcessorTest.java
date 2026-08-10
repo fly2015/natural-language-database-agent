@@ -40,6 +40,22 @@ class RetrievalQueryProcessorTest {
     }
 
     @Test
+    void correctsAdjacentTranspositionTypoFromMaintainedVocabulary() {
+        InMemoryVocabularyCorrectionService correctionService = correctionService();
+        RetrievalQueryProcessor processor = new RetrievalQueryProcessor(textNormalizer, correctionService);
+        List<RetrievedChunk> chunks = List.of(
+                RetrievedChunk.schema("schema.customers", "table: customers; columns: id, name",
+                        0.0, Set.of("customers"))
+        );
+        correctionService.rebuild(new SchemaMetadataSnapshot(List.of()), chunks);
+
+        var query = processor.process("show cutsomer list");
+
+        assertThat(query.correctedTerms()).extracting("corrected").contains("customer");
+        assertThat(query.retrievalQuery()).contains("cutsomer", "customer");
+    }
+
+    @Test
     void marksAmbiguousCorrectionWhenMultipleSchemaTermsAreEquallyLikely() {
         InMemoryVocabularyCorrectionService correctionService = correctionService();
         RetrievalQueryProcessor processor = new RetrievalQueryProcessor(textNormalizer, correctionService);
