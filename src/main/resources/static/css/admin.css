@@ -1,0 +1,152 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: #17202a;
+    background: #f5f7fa;
+}
+
+.admin-shell {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.topbar,
+.panel-header,
+.tabs,
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.topbar,
+.panel-header {
+    justify-content: space-between;
+}
+
+h1,
+h2,
+p {
+    margin: 0;
+}
+
+.topbar {
+    margin-bottom: 18px;
+}
+
+.topbar a,
+button {
+    border: 1px solid #8fa3b8;
+    background: #ffffff;
+    color: #17202a;
+    border-radius: 6px;
+    padding: 8px 12px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+button:hover,
+.topbar a:hover,
+.tab.active {
+    background: #1d4ed8;
+    color: #ffffff;
+    border-color: #1d4ed8;
+}
+
+.tabs {
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.panel {
+    background: #ffffff;
+    border: 1px solid #d8e0ea;
+    border-radius: 8px;
+    padding: 18px;
+}
+
+.hidden {
+    display: none;
+}
+
+.split {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) 1fr;
+    gap: 18px;
+    margin-top: 16px;
+}
+
+.editor {
+    display: grid;
+    gap: 10px;
+}
+
+label {
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+    color: #405064;
+}
+
+input,
+textarea {
+    width: 100%;
+    border: 1px solid #b8c4d2;
+    border-radius: 6px;
+    padding: 8px;
+    font: inherit;
+}
+
+.table-wrap {
+    overflow: auto;
+    margin-top: 12px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 680px;
+}
+
+th,
+td {
+    border-bottom: 1px solid #e0e6ed;
+    padding: 10px;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #54657a;
+}
+
+.summary {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 10px 16px;
+}
+
+pre {
+    white-space: pre-wrap;
+    background: #101828;
+    color: #eef4ff;
+    border-radius: 8px;
+    padding: 14px;
+}
+
+@media (max-width: 860px) {
+    .admin-shell {
+        padding: 14px;
+    }
+
+    .split {
+        grid-template-columns: 1fr;
+    }
+}

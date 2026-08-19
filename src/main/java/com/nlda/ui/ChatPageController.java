@@ -10,4 +10,9 @@ public class ChatPageController {
     public String chat() {
         return "chat";
     }
+
+    @GetMapping("/admin")
+    public String admin() {
+        return "admin";
+    }
 }
