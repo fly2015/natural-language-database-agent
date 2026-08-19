@@ -62,6 +62,11 @@ public class SchemaIndexService {
         return ensureIndexed();
     }
 
+    public IndexedSchemaChunks readyIndex() {
+        return chunkRepository.current()
+                .orElseThrow(() -> new IllegalStateException("retrieval index is not ready"));
+    }
+
     public List<RetrievedChunk> fallbackChunks() {
         return chunkRepository.fallbackChunks();
     }

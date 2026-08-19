@@ -23,6 +23,10 @@ management:
 
 agent:
   retrieval:
+    business-rule-source: ${AGENT_RETRIEVAL_BUSINESS_RULE_SOURCE:yaml}
+    datasource-id: ${AGENT_DATASOURCE_ID:default}
+    tenant-id: ${AGENT_TENANT_ID:}
+    consume-only: true
     embedding:
       provider: ${AGENT_RETRIEVAL_EMBEDDING_PROVIDER:fake}
       model: ${AGENT_RETRIEVAL_EMBEDDING_MODEL:fake-hash-embedding}

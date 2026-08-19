@@ -3,6 +3,7 @@ package com.nlda.retrieval.impl.vector;
 import com.nlda.retrieval.config.VocabularyProperties;
 import com.nlda.retrieval.contract.VectorRetrievalRepository;
 import com.nlda.retrieval.model.ChunkKind;
+import com.nlda.retrieval.model.RetrievalIndexRecord;
 import com.nlda.retrieval.model.RetrievedChunk;
 import com.nlda.retrieval.model.VectorIndexedChunk;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -114,6 +117,26 @@ public class PgVectorRetrievalRepository implements VectorRetrievalRepository {
         );
     }
 
+    @Override
+    public List<RetrievalIndexRecord> records() {
+        return jdbcTemplate.query("""
+                SELECT chunk_id, kind, schema_fingerprint, content_hash, embedding_model, active, updated_at
+                  FROM retrieval_chunk_embedding
+                 WHERE datasource_id = ?
+                 ORDER BY active DESC, updated_at DESC, chunk_id
+                """,
+                (rs, rowNum) -> new RetrievalIndexRecord(
+                        rs.getString("chunk_id"),
+                        ChunkKind.valueOf(rs.getString("kind")),
+                        rs.getString("schema_fingerprint"),
+                        rs.getString("content_hash"),
+                        rs.getString("embedding_model"),
+                        rs.getBoolean("active"),
+                        localDateTime(rs.getTimestamp("updated_at"))
+                ),
+                vocabularyProperties.datasourceId());
+    }
+
     private RetrievedChunk toChunk(ResultSet rs) throws SQLException {
         return new RetrievedChunk(
                 rs.getString("chunk_id"),
@@ -145,5 +168,9 @@ public class PgVectorRetrievalRepository implements VectorRetrievalRepository {
             builder.append(vector[i]);
         }
         return builder.append(']').toString();
+    }
+
+    private LocalDateTime localDateTime(Timestamp value) {
+        return value == null ? null : value.toLocalDateTime();
     }
 }

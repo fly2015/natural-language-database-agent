@@ -3,6 +3,7 @@ package com.nlda.retrieval.impl.rules;
 import com.nlda.retrieval.config.BusinessRuleProperties;
 import com.nlda.retrieval.contract.BusinessRuleSource;
 import com.nlda.retrieval.model.BusinessRule;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
+@ConditionalOnProperty(prefix = "agent.retrieval", name = "business-rule-source", havingValue = "yaml", matchIfMissing = true)
 public class ConfigBusinessRuleSource implements BusinessRuleSource {
 
     private final BusinessRuleProperties properties;

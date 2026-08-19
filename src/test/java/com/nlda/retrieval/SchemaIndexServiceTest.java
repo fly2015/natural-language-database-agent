@@ -45,7 +45,7 @@ class SchemaIndexServiceTest {
     }
 
     @Test
-    void fallbackCanUsePreviousIndexWhenDynamicExtractionFails() {
+    void consumeOnlyRetrievalUsesReadyIndexWithoutRefreshingMetadata() {
         PgVectorReadySchemaChunkRepository repository = new PgVectorReadySchemaChunkRepository();
         repository.replace(new IndexedSchemaChunks("known", List.of(
                 RetrievedChunk.schema("schema.customers", "table: customers; columns: id BIGINT, name VARCHAR",
@@ -65,8 +65,8 @@ class SchemaIndexServiceTest {
         RetrievalContext context = service.retrieve("Show top customers by spending");
 
         assertThat(context.proceed()).isTrue();
-        assertThat(context.finalMode()).isEqualTo(RetrievalMode.FALLBACK_CACHE);
-        assertThat(context.attempts()).extracting(RetrievalAttempt::failureCode).contains("RF-03");
+        assertThat(context.finalMode()).isEqualTo(RetrievalMode.NORMALIZED);
+        assertThat(context.attempts()).extracting(RetrievalAttempt::failureCode).containsExactly("NONE");
     }
 
     private static class FailingMetadataExtractor extends JdbcSchemaMetadataExtractor {

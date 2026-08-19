@@ -57,7 +57,7 @@ public class DynamicSchemaRetriever implements SchemaRetriever {
     @Override
     public void prepare() {
         try {
-            indexService.currentChunks();
+            indexService.refresh();
         } catch (RuntimeException ex) {
             log.warn("retrievalPrepareFailed message={}", ex.getMessage());
         }
@@ -65,7 +65,7 @@ public class DynamicSchemaRetriever implements SchemaRetriever {
 
     @Override
     public List<RetrievedChunk> retrieve(ProcessedQuery query, RetrievalMode mode) {
-        IndexedSchemaChunks indexed = indexService.currentIndex();
+        IndexedSchemaChunks indexed = indexService.readyIndex();
         List<RetrievedChunk> chunks = indexed.chunks();
         if (query.ambiguous()) {
             log.info("retrievalQueryAmbiguous original={} normalized={} corrections={}",

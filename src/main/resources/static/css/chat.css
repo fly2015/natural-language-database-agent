@@ -86,7 +86,8 @@ h2 {
     font-size: 0.82rem;
 }
 
-.metrics span {
+.metrics span,
+.admin-link {
     min-height: 28px;
     display: inline-flex;
     align-items: center;
@@ -94,6 +95,15 @@ h2 {
     border-radius: 6px;
     padding: 4px 8px;
     background: var(--surface);
+}
+
+.admin-link {
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.admin-link:hover {
+    border-color: var(--accent);
 }
 
 .conversation {

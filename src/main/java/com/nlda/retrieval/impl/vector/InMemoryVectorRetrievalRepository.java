@@ -1,6 +1,7 @@
 package com.nlda.retrieval.impl.vector;
 
 import com.nlda.retrieval.contract.VectorRetrievalRepository;
+import com.nlda.retrieval.model.RetrievalIndexRecord;
 import com.nlda.retrieval.model.RetrievedChunk;
 import com.nlda.retrieval.model.VectorIndexedChunk;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -30,6 +31,21 @@ public class InMemoryVectorRetrievalRepository implements VectorRetrievalReposit
                 .filter(chunk -> chunk.score() > 0.0)
                 .sorted(Comparator.comparingDouble(RetrievedChunk::score).reversed())
                 .limit(limit)
+                .toList();
+    }
+
+    @Override
+    public List<RetrievalIndexRecord> records() {
+        return current.get().stream()
+                .map(chunk -> new RetrievalIndexRecord(
+                        chunk.chunk().id(),
+                        chunk.chunk().kind(),
+                        chunk.fingerprint(),
+                        chunk.contentHash(),
+                        chunk.embeddingModel(),
+                        true,
+                        null
+                ))
                 .toList();
     }
 

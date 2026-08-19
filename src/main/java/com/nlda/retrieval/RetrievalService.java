@@ -57,7 +57,6 @@ public class RetrievalService {
 
     public RetrievalContext retrieve(String question) {
         List<RetrievalAttempt> attempts = new ArrayList<>();
-        schemaRetriever.prepare();
         RetrievalContext recovered = runAttempt(question, process(question), RetrievalMode.NORMALIZED, 1, attempts);
         if (recovered.proceed()) {
             return recovered;
