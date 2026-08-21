@@ -1,0 +1,27 @@
+agent:
+  datasource:
+    retrieval:
+      url: ${POSTGRES_RETRIEVAL_JDBC_URL:jdbc:postgresql://localhost:5432/nlda_retrieval}
+      username: ${POSTGRES_RETRIEVAL_USER:${POSTGRES_USER:nlda}}
+      password: ${POSTGRES_RETRIEVAL_PASSWORD:${POSTGRES_PASSWORD:nlda}}
+      driver-class-name: org.postgresql.Driver
+  retrieval:
+    datasource-id: ${AGENT_DATASOURCE_ID:default}
+    tenant-id: ${AGENT_TENANT_ID:}
+    embedding:
+      provider: ${AGENT_RETRIEVAL_EMBEDDING_PROVIDER:openai}
+      model: ${AGENT_RETRIEVAL_EMBEDDING_MODEL:text-embedding-3-small}
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:}
+      dimensions: ${AGENT_RETRIEVAL_EMBEDDING_DIMENSIONS:64}
+      max-retries: ${AGENT_RETRIEVAL_EMBEDDING_MAX_RETRIES:0}
+      timeout: ${AGENT_RETRIEVAL_EMBEDDING_TIMEOUT:30s}
+      search-limit: ${AGENT_RETRIEVAL_EMBEDDING_SEARCH_LIMIT:8}
+    vector:
+      provider: pgvector
+    vocabulary:
+      provider: postgres-trgm
+      datasource-id: ${AGENT_DATASOURCE_ID:default}
+      similarity-threshold: ${AGENT_VOCABULARY_SIMILARITY_THRESHOLD:0.58}
+      ambiguity-delta: ${AGENT_VOCABULARY_AMBIGUITY_DELTA:0.05}
+      max-candidates: ${AGENT_VOCABULARY_MAX_CANDIDATES:5}

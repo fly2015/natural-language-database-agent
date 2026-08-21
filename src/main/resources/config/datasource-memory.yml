@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:nlda;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: true

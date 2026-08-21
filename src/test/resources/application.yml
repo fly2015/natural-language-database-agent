@@ -1,0 +1,6 @@
+spring:
+  profiles:
+    default: full-local
+  config:
+    import:
+      - classpath:config/agent-common.yml

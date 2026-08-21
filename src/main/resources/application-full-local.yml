@@ -1,0 +1,7 @@
+spring:
+  config:
+    import:
+      - optional:classpath:business-rules.yml
+      - classpath:config/datasource-memory.yml
+      - classpath:config/governance-yaml.yml
+      - classpath:config/retrieval-memory.yml

@@ -12,6 +12,7 @@ import com.nlda.retrieval.query.CorrectionCandidate;
 import com.nlda.retrieval.text.TextNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,7 +41,7 @@ public class PostgresTrigramVocabularyService implements VocabularyCorrectionSer
     private final TextNormalizer textNormalizer;
 
     public PostgresTrigramVocabularyService(
-            JdbcTemplate jdbcTemplate,
+            @Qualifier("retrievalJdbcTemplate") JdbcTemplate jdbcTemplate,
             VocabularyProperties properties,
             TextNormalizer textNormalizer
     ) {
@@ -157,6 +158,7 @@ public class PostgresTrigramVocabularyService implements VocabularyCorrectionSer
             CorrectionCandidate best = ranked.getFirst();
             boolean ambiguous = ranked.stream()
                     .skip(1)
+                    .filter(candidate -> !candidate.corrected().equals(best.corrected()))
                     .anyMatch(candidate -> Math.abs(candidate.score() - best.score()) <= properties.ambiguityDelta());
             return List.of(new CorrectionCandidate(
                     best.original(),

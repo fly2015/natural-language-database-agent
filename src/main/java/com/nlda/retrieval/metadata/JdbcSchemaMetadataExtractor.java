@@ -6,6 +6,7 @@ import com.nlda.retrieval.model.schema.SchemaForeignKeyMetadata;
 import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
 import com.nlda.retrieval.model.schema.SchemaTableMetadata;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -29,7 +30,7 @@ public class JdbcSchemaMetadataExtractor implements SchemaMetadataProvider {
 
     private final DataSource dataSource;
 
-    public JdbcSchemaMetadataExtractor(DataSource dataSource) {
+    public JdbcSchemaMetadataExtractor(@Qualifier("appDataSource") DataSource dataSource) {
         this.dataSource = dataSource;
     }
 

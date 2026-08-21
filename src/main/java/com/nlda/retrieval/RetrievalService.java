@@ -1,5 +1,6 @@
 package com.nlda.retrieval;
 
+import com.nlda.audit.AuditContext;
 import com.nlda.retrieval.contract.SchemaRetriever;
 import com.nlda.retrieval.model.RetrievalAttempt;
 import com.nlda.retrieval.model.RetrievalContext;
@@ -18,8 +19,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -57,15 +60,25 @@ public class RetrievalService {
 
     public RetrievalContext retrieve(String question) {
         List<RetrievalAttempt> attempts = new ArrayList<>();
-        RetrievalContext recovered = runAttempt(question, process(question), RetrievalMode.NORMALIZED, 1, attempts);
+        long started = System.nanoTime();
+        String normalized = normalize(question);
+        audit("retrieval.normalize", "OK", started, map("question", question),
+                map("normalizerClass", textNormalizer.getClass().getName(), "normalized", normalized));
+
+        ProcessedQuery normalizedQuery = processForAudit(question, RetrievalMode.NORMALIZED);
+        RetrievalContext recovered = runAttempt(question, normalizedQuery, RetrievalMode.NORMALIZED, 1, attempts);
         if (recovered.proceed()) {
             return recovered;
         }
-        recovered = runAttempt(question, process(expandedQuery(question)), RetrievalMode.EXPANDED, 2, attempts);
+        String expanded = expandedQuery(question);
+        audit("retrieval.expand", "OK", 0, map("question", question, "normalized", normalized),
+                map("expanded", expanded));
+        ProcessedQuery expandedQuery = processForAudit(expanded, RetrievalMode.EXPANDED);
+        recovered = runAttempt(question, expandedQuery, RetrievalMode.EXPANDED, 2, attempts);
         if (recovered.proceed()) {
             return recovered;
         }
-        recovered = runAttempt(question, process(expandedQuery(question)), RetrievalMode.HYBRID, 3, attempts);
+        recovered = runAttempt(question, expandedQuery, RetrievalMode.HYBRID, 3, attempts);
         if (recovered.proceed()) {
             return recovered;
         }
@@ -77,6 +90,8 @@ public class RetrievalService {
         attempts.add(new RetrievalAttempt(attempts.size() + 1, previousContext.finalMode(), previousContext.confidence(),
                 RetrievalFailureCode.RF_04.code(), previousContext.snippets().size()));
         logAttempt(attempts.getLast());
+        audit("retrieval.validation_recovery", "RF-04", 0, map("question", question, "previousContext",
+                previousContext), map("attempts", attempts));
         return fallback(question, attempts, RetrievalFailureCode.RF_04.code());
     }
 
@@ -88,6 +103,10 @@ public class RetrievalService {
             List<RetrievalAttempt> attempts
     ) {
         try {
+            long started = System.nanoTime();
+            audit("retrieval.schema_retriever.request", schemaRetriever.getClass().getName(), "STARTED", 0,
+                    map("mode", mode, "attemptNumber", attemptNumber, "processedQuery", retrievalQuery),
+                    map());
             List<RetrievedChunk> chunks = schemaRetriever.retrieve(retrievalQuery, mode);
             double confidence = confidence(originalQuestion, chunks);
             RetrievalFailureCode failureCode = classify(chunks, confidence);
@@ -95,6 +114,11 @@ public class RetrievalService {
                     chunks.size());
             attempts.add(attempt);
             logAttempt(attempt);
+            audit("retrieval.schema_retriever.response", schemaRetriever.getClass().getName(), failureCode.code(), started,
+                    map("mode", mode, "attemptNumber", attemptNumber, "retrievalQuery",
+                            retrievalQuery.retrievalQuery()),
+                    map("chunks", chunkSummaries(chunks), "confidence", confidence, "failureCode",
+                            failureCode.code(), "attempt", attempt));
             if (confidence >= CONFIDENCE_THRESHOLD && !chunks.isEmpty()) {
                 return proceed(chunks, confidence, mode, attempts);
             }
@@ -105,12 +129,20 @@ public class RetrievalService {
             logAttempt(attempt);
             log.warn("retrieval failure mode={} failureCode={} message={}", mode, RetrievalFailureCode.RF_03.code(),
                     ex.getMessage());
+            audit("retrieval.schema_retriever.response", schemaRetriever.getClass().getName(),
+                    RetrievalFailureCode.RF_03.code(), 0,
+                    map("mode", mode, "attemptNumber", attemptNumber, "retrievalQuery",
+                            retrievalQuery.retrievalQuery()),
+                    map("error", ex.getMessage(), "attempt", attempt));
             return clarify(0.0, RetrievalFailureCode.RF_03.code(), mode, attempts);
         }
     }
 
     private RetrievalContext fallback(String question, List<RetrievalAttempt> attempts, String previousFailureCode) {
-        ProcessedQuery processedQuery = process(question);
+        ProcessedQuery processedQuery = processForAudit(question, RetrievalMode.FALLBACK_CACHE);
+        long started = System.nanoTime();
+        audit("retrieval.fallback.request", schemaRetriever.getClass().getName(), "STARTED", 0, map("processedQuery", processedQuery,
+                "previousFailureCode", previousFailureCode), map());
         List<RetrievedChunk> chunks = schemaRetriever.fallback(processedQuery);
         double confidence = confidence(question, chunks);
         String failureCode = chunks.isEmpty() ? RetrievalFailureCode.RF_01.code() : previousFailureCode;
@@ -118,6 +150,9 @@ public class RetrievalService {
                 failureCode, chunks.size());
         attempts.add(attempt);
         logAttempt(attempt);
+        audit("retrieval.fallback.response", schemaRetriever.getClass().getName(), failureCode, started, map("retrievalQuery",
+                processedQuery.retrievalQuery()), map("chunks", chunkSummaries(chunks), "confidence", confidence,
+                "failureCode", failureCode, "attempt", attempt));
         if (confidence >= CONFIDENCE_THRESHOLD && !chunks.isEmpty()) {
             return proceed(chunks, confidence, RetrievalMode.FALLBACK_CACHE, attempts);
         }
@@ -135,8 +170,11 @@ public class RetrievalService {
                 .map(RetrievedChunk::text)
                 .distinct()
                 .toList();
-        return new RetrievalContext(true, confidence, snippets, "", RetrievalFailureCode.NONE.code(), mode,
+        RetrievalContext context = new RetrievalContext(true, confidence, snippets, "", RetrievalFailureCode.NONE.code(), mode,
                 List.copyOf(attempts));
+        audit("retrieval.decision", "PROCEED", 0, map("chunks", chunkSummaries(chunks), "attempts", attempts),
+                map("context", context));
+        return context;
     }
 
     private RetrievalContext clarify(
@@ -145,8 +183,11 @@ public class RetrievalService {
             RetrievalMode mode,
             List<RetrievalAttempt> attempts
     ) {
-        return new RetrievalContext(false, confidence, List.of(), safeStopReason(), failureCode, mode,
+        RetrievalContext context = new RetrievalContext(false, confidence, List.of(), safeStopReason(), failureCode, mode,
                 List.copyOf(attempts));
+        audit("retrieval.decision", "CLARIFY", 0, map("confidence", confidence, "failureCode", failureCode,
+                "mode", mode, "attempts", attempts), map("context", context));
+        return context;
     }
 
     private RetrievalFailureCode classify(List<RetrievedChunk> chunks, double confidence) {
@@ -201,6 +242,15 @@ public class RetrievalService {
         return queryProcessor.process(value);
     }
 
+    private ProcessedQuery processForAudit(String value, RetrievalMode mode) {
+        long started = System.nanoTime();
+        ProcessedQuery processedQuery = process(value);
+        audit("retrieval.query.process", processedQuery.ambiguous() ? "AMBIGUOUS" : "OK", started,
+                map("mode", mode, "input", value), map("processorClass", queryProcessor.getClass().getName(),
+                        "processedQuery", processedQuery));
+        return processedQuery;
+    }
+
     private String safeStopReason() {
         return "The system could not retrieve enough trusted schema context to generate a safe SQL query. "
                 + "Please clarify the metric, period, and target entity.";
@@ -210,6 +260,31 @@ public class RetrievalService {
         log.info("retrievalAttempt={} mode={} confidence={} failureCode={} resultCount={}",
                 attempt.attemptNumber(), attempt.mode(), attempt.confidence(), attempt.failureCode(),
                 attempt.resultCount());
+    }
+
+    private List<Map<String, Object>> chunkSummaries(List<RetrievedChunk> chunks) {
+        return chunks.stream()
+                .map(chunk -> map("id", chunk.id(), "kind", chunk.kind(), "score", chunk.score(), "schemaRefs",
+                        chunk.schemaRefs(), "aliases", chunk.aliases(), "text", chunk.text()))
+                .toList();
+    }
+
+    private void audit(String name, String status, long started, Map<String, Object> input, Map<String, Object> output) {
+        audit(name, getClass().getName(), status, started, input, output);
+    }
+
+    private void audit(String name, String implementationClass, String status, long started, Map<String, Object> input,
+            Map<String, Object> output) {
+        long durationMs = started == 0 ? 0 : (System.nanoTime() - started) / 1_000_000;
+        AuditContext.step(name, implementationClass, status, durationMs, input, output);
+    }
+
+    private Map<String, Object> map(Object... values) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (int i = 0; i < values.length; i += 2) {
+            map.put((String) values[i], values[i + 1]);
+        }
+        return map;
     }
 
 }

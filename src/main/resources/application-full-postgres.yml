@@ -1,0 +1,12 @@
+spring:
+  config:
+    import:
+      - classpath:config/datasource-postgres.yml
+      - classpath:config/governance-postgres.yml
+      - classpath:config/retrieval-postgres.yml
+
+agent:
+  migration:
+    app-enabled: ${AGENT_MIGRATION_APP_ENABLED:true}
+    governance-enabled: ${AGENT_MIGRATION_GOVERNANCE_ENABLED:false}
+    retrieval-enabled: ${AGENT_MIGRATION_RETRIEVAL_ENABLED:false}

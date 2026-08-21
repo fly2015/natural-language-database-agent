@@ -1,5 +1,6 @@
 package com.nlda.retrieval.governance;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +22,7 @@ public class JdbcGovernedBusinessRuleRepository implements GovernedBusinessRuleR
 
     private final JdbcTemplate jdbcTemplate;
 
-    public JdbcGovernedBusinessRuleRepository(JdbcTemplate jdbcTemplate) {
+    public JdbcGovernedBusinessRuleRepository(@Qualifier("governanceJdbcTemplate") JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

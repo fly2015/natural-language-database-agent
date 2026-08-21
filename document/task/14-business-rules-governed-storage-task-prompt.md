@@ -291,7 +291,7 @@ Diagnostics tab    -> RetrievalDiagnosticsService
 - `src/main/java/com/nlda/retrieval/config/BusinessRuleProperties.java`
 - `src/main/java/com/nlda/retrieval/impl`
 - `src/main/resources/application.yml`
-- `src/main/resources/application-postgres.yml`
+- `src/main/resources/application-postgres-provider.yml`
 - `docker-compose.yml`
 - `src/test/java/com/nlda/retrieval/ConfigBusinessRuleSourceTest.java`
 - `document/note/07-enterprise-readiness-checklist.md`

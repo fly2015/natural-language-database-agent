@@ -1,22 +1,7 @@
-spring:
-  datasource:
-    url: ${POSTGRES_JDBC_URL:jdbc:postgresql://localhost:5432/nlda}
-    username: ${POSTGRES_USER:nlda}
-    password: ${POSTGRES_PASSWORD:nlda}
-    driver-class-name: org.postgresql.Driver
-  sql:
-    init:
-      mode: always
-      platform: postgres
-      schema-locations: classpath:schema-postgres.sql
-      data-locations: classpath:data-postgres.sql
-
 agent:
   retrieval:
-    business-rule-source: ${AGENT_RETRIEVAL_BUSINESS_RULE_SOURCE:database}
     datasource-id: ${AGENT_DATASOURCE_ID:default}
     tenant-id: ${AGENT_TENANT_ID:}
-    consume-only: true
     embedding:
       provider: ${AGENT_RETRIEVAL_EMBEDDING_PROVIDER:fake}
       model: ${AGENT_RETRIEVAL_EMBEDDING_MODEL:fake-hash-embedding}
@@ -27,9 +12,9 @@ agent:
       timeout: ${AGENT_RETRIEVAL_EMBEDDING_TIMEOUT:30s}
       search-limit: ${AGENT_RETRIEVAL_EMBEDDING_SEARCH_LIMIT:8}
     vector:
-      provider: pgvector
+      provider: ${AGENT_RETRIEVAL_VECTOR_PROVIDER:in-memory}
     vocabulary:
-      provider: postgres-trgm
+      provider: ${AGENT_RETRIEVAL_VOCABULARY_PROVIDER:in-memory}
       datasource-id: ${AGENT_DATASOURCE_ID:default}
       similarity-threshold: ${AGENT_VOCABULARY_SIMILARITY_THRESHOLD:0.58}
       ambiguity-delta: ${AGENT_VOCABULARY_AMBIGUITY_DELTA:0.05}

@@ -7,6 +7,7 @@ import com.nlda.retrieval.model.IndexedSchemaChunks;
 import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,7 @@ public class RetrievalIndexRebuildService {
             SchemaIndexService schemaIndexService,
             SchemaMetadataProvider metadataProvider,
             GovernedBusinessRuleRepository ruleRepository,
-            JdbcTemplate jdbcTemplate,
+            @Qualifier("governanceJdbcTemplate") JdbcTemplate jdbcTemplate,
             ObjectProvider<EmbeddingClient> embeddingClient
     ) {
         this.schemaIndexService = schemaIndexService;

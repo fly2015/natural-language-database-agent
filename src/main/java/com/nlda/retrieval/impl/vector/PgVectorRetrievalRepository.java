@@ -6,6 +6,7 @@ import com.nlda.retrieval.model.ChunkKind;
 import com.nlda.retrieval.model.RetrievalIndexRecord;
 import com.nlda.retrieval.model.RetrievedChunk;
 import com.nlda.retrieval.model.VectorIndexedChunk;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -28,7 +29,10 @@ public class PgVectorRetrievalRepository implements VectorRetrievalRepository {
     private final JdbcTemplate jdbcTemplate;
     private final VocabularyProperties vocabularyProperties;
 
-    public PgVectorRetrievalRepository(JdbcTemplate jdbcTemplate, VocabularyProperties vocabularyProperties) {
+    public PgVectorRetrievalRepository(
+            @Qualifier("retrievalJdbcTemplate") JdbcTemplate jdbcTemplate,
+            VocabularyProperties vocabularyProperties
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.vocabularyProperties = vocabularyProperties;
     }
@@ -63,13 +67,14 @@ public class PgVectorRetrievalRepository implements VectorRetrievalRepository {
                         updated_at
                     )
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::vector, true, now())
-                    ON CONFLICT (datasource_id, schema_fingerprint, chunk_id, embedding_model)
+                    ON CONFLICT (datasource_id, schema_fingerprint, chunk_id)
                     DO UPDATE SET
                         kind = EXCLUDED.kind,
                         text = EXCLUDED.text,
                         schema_refs = EXCLUDED.schema_refs,
                         aliases = EXCLUDED.aliases,
                         content_hash = EXCLUDED.content_hash,
+                        embedding_model = EXCLUDED.embedding_model,
                         embedding_dimensions = EXCLUDED.embedding_dimensions,
                         embedding = EXCLUDED.embedding,
                         active = true,
