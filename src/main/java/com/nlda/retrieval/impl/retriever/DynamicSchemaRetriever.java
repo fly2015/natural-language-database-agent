@@ -1,6 +1,7 @@
 package com.nlda.retrieval.impl.retriever;
 
 import com.nlda.retrieval.config.EmbeddingProperties;
+import com.nlda.retrieval.config.BusinessRuleProperties;
 import com.nlda.retrieval.contract.EmbeddingClient;
 import com.nlda.retrieval.contract.SchemaRetriever;
 import com.nlda.retrieval.contract.VectorRetrievalRepository;
@@ -14,6 +15,7 @@ import com.nlda.retrieval.text.TextNormalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -34,28 +36,44 @@ public class DynamicSchemaRetriever implements SchemaRetriever {
     private final EmbeddingClient embeddingClient;
     private final VectorRetrievalRepository vectorRepository;
     private final EmbeddingProperties embeddingProperties;
+    private final BusinessRuleProperties businessRuleProperties;
 
     public DynamicSchemaRetriever(SchemaIndexService indexService) {
-        this(indexService, new TextNormalizer(), null, null, null);
+        this.indexService = indexService;
+        this.textNormalizer = new TextNormalizer();
+        this.embeddingClient = null;
+        this.vectorRepository = null;
+        this.embeddingProperties = null;
+        this.businessRuleProperties = new BusinessRuleProperties();
     }
 
     @Autowired
     public DynamicSchemaRetriever(
             SchemaIndexService indexService,
             TextNormalizer textNormalizer,
-            EmbeddingClient embeddingClient,
-            VectorRetrievalRepository vectorRepository,
-            EmbeddingProperties embeddingProperties
+            ObjectProvider<EmbeddingClient> embeddingClient,
+            ObjectProvider<VectorRetrievalRepository> vectorRepository,
+            EmbeddingProperties embeddingProperties,
+            BusinessRuleProperties businessRuleProperties
     ) {
         this.indexService = indexService;
         this.textNormalizer = textNormalizer;
-        this.embeddingClient = embeddingClient;
-        this.vectorRepository = vectorRepository;
+        this.embeddingClient = embeddingClient.getIfAvailable();
+        this.vectorRepository = vectorRepository.getIfAvailable();
         this.embeddingProperties = embeddingProperties;
+        this.businessRuleProperties = businessRuleProperties;
     }
 
     @Override
     public void prepare() {
+        if (businessRuleProperties.isConsumeOnly()) {
+            try {
+                indexService.readyIndex();
+            } catch (RuntimeException ex) {
+                log.warn("retrievalPrepareConsumeOnlyFailed message={}", ex.getMessage());
+            }
+            return;
+        }
         try {
             indexService.refresh();
         } catch (RuntimeException ex) {

@@ -1,22 +1,17 @@
-DROP TABLE IF EXISTS order_items;
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS customers;
-
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
     id BIGINT PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
     region VARCHAR(80) NOT NULL,
     vip BOOLEAN NOT NULL DEFAULT FALSE
 );
 
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
     id BIGINT PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
     category VARCHAR(80) NOT NULL
 );
 
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
     id BIGINT PRIMARY KEY,
     customer_id BIGINT NOT NULL REFERENCES customers(id),
     order_date DATE NOT NULL,
@@ -24,7 +19,7 @@ CREATE TABLE orders (
     total_amount DECIMAL(12, 2) NOT NULL
 );
 
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
     id BIGINT PRIMARY KEY,
     order_id BIGINT NOT NULL REFERENCES orders(id),
     product_id BIGINT NOT NULL REFERENCES products(id),

@@ -1,5 +1,6 @@
 package com.nlda.guardrail;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +17,7 @@ public class JdbcSchemaCatalog implements SchemaCatalog {
     private final JdbcTemplate jdbcTemplate;
     private volatile Map<String, Set<String>> cachedTables;
 
-    public JdbcSchemaCatalog(JdbcTemplate jdbcTemplate) {
+    public JdbcSchemaCatalog(@Qualifier("appJdbcTemplate") JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

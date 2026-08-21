@@ -1,42 +1,72 @@
+x-database-postgres-credentials: &database-postgres-credentials
+  POSTGRES_USER: nlda
+  POSTGRES_PASSWORD: nlda
+
+x-app-common-environment: &app-common-environment
+  SPRING_PROFILES_ACTIVE: full-postgres
+  SERVER_PORT: 8080
+  AGENT_LLM_PROVIDER: ${AGENT_LLM_PROVIDER:-deterministic}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+  POSTGRES_USER: nlda
+  POSTGRES_PASSWORD: nlda
+  AGENT_DATASOURCE_ID: default
+  AGENT_TENANT_ID: ""
+  AGENT_MIGRATION_APP_ENABLED: ${AGENT_MIGRATION_APP_ENABLED:-true}
+  AGENT_MIGRATION_GOVERNANCE_ENABLED: ${AGENT_MIGRATION_GOVERNANCE_ENABLED:-true}
+  AGENT_MIGRATION_RETRIEVAL_ENABLED: ${AGENT_MIGRATION_RETRIEVAL_ENABLED:-true}
+  AGENT_RETRIEVAL_EMBEDDING_PROVIDER: ${AGENT_RETRIEVAL_EMBEDDING_PROVIDER:-openai}
+  AGENT_RETRIEVAL_EMBEDDING_MODEL: ${AGENT_RETRIEVAL_EMBEDDING_MODEL:-text-embedding-3-small}
+  AGENT_RETRIEVAL_EMBEDDING_DIMENSIONS: ${AGENT_RETRIEVAL_EMBEDDING_DIMENSIONS:-64}
+
+x-datasource-postgres-environment: &datasource-postgres-environment
+  POSTGRES_APP_JDBC_URL: jdbc:postgresql://datasource-postgres:5432/nlda_app
+
+x-governance-postgres-environment: &governance-postgres-environment
+  POSTGRES_GOVERNANCE_JDBC_URL: jdbc:postgresql://governance-postgres:5432/nlda_governance
+
+x-retrieval-postgres-environment: &retrieval-postgres-environment
+  POSTGRES_RETRIEVAL_JDBC_URL: jdbc:postgresql://retrieval-postgres:5432/nlda_retrieval
+
 services:
-  postgres:
+  postgres-database-server:
     image: pgvector/pgvector:pg17
-    container_name: nlda-postgres
+    container_name: nlda-postgres-database-server
     environment:
-      POSTGRES_DB: nlda
-      POSTGRES_USER: nlda
-      POSTGRES_PASSWORD: nlda
+      <<: *database-postgres-credentials
+      POSTGRES_DB: nlda_app
     ports:
       - "5432:5432"
     volumes:
-      - nlda-postgres-data:/var/lib/postgresql/data
+      - nlda-database-postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/10-init-databases.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nlda -d nlda"]
+      test: ["CMD-SHELL", "pg_isready -U nlda -d nlda_app"]
       interval: 5s
       timeout: 5s
       retries: 20
+    networks:
+      default:
+        aliases:
+          - datasource-postgres
+          - governance-postgres
+          - retrieval-postgres
 
-  app:
+  app-full-postgres:
     build: .
-    container_name: nlda-app
+    container_name: nlda-app-full-postgres
     depends_on:
-      postgres:
+      postgres-database-server:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: postgres
-      POSTGRES_JDBC_URL: jdbc:postgresql://postgres:5432/nlda
-      POSTGRES_USER: nlda
-      POSTGRES_PASSWORD: nlda
-      AGENT_RETRIEVAL_VOCABULARY_PROVIDER: postgres-trgm
-      AGENT_RETRIEVAL_VECTOR_PROVIDER: pgvector
-      AGENT_RETRIEVAL_BUSINESS_RULE_SOURCE: database
-      AGENT_RETRIEVAL_EMBEDDING_PROVIDER: fake
-      AGENT_RETRIEVAL_EMBEDDING_DIMENSIONS: 64
-      AGENT_DATASOURCE_ID: default
-      AGENT_TENANT_ID: ""
-      AGENT_LLM_PROVIDER: deterministic
+      <<:
+        - *app-common-environment
+        - *datasource-postgres-environment
+        - *governance-postgres-environment
+        - *retrieval-postgres-environment
     ports:
       - "8080:8080"
 
 volumes:
-  nlda-postgres-data:
+  nlda-database-postgres-data:

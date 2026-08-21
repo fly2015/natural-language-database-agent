@@ -25,7 +25,7 @@ public class SchemaIndexService {
     private final List<RetrievalVocabularyIndexService> vocabularyIndexServices;
     private final EmbeddingIndexService embeddingIndexService;
     private volatile String vocabularyFingerprint = "";
-    private volatile String embeddingFingerprint = "";
+    private volatile String embeddingIndexKey = "";
 
     public SchemaIndexService(
             SchemaMetadataProvider metadataProvider,
@@ -45,13 +45,13 @@ public class SchemaIndexService {
             SchemaChunkBuilder chunkBuilder,
             SchemaChunkRepository chunkRepository,
             ObjectProvider<RetrievalVocabularyIndexService> vocabularyIndexServices,
-            EmbeddingIndexService embeddingIndexService
+            ObjectProvider<EmbeddingIndexService> embeddingIndexService
     ) {
         this.metadataProvider = metadataProvider;
         this.chunkBuilder = chunkBuilder;
         this.chunkRepository = chunkRepository;
         this.vocabularyIndexServices = vocabularyIndexServices.stream().toList();
-        this.embeddingIndexService = embeddingIndexService;
+        this.embeddingIndexService = embeddingIndexService.getIfAvailable();
     }
 
     public List<RetrievedChunk> currentChunks() {
@@ -112,15 +112,19 @@ public class SchemaIndexService {
         if (embeddingIndexService != null) {
             embeddingIndexService.rebuild(indexed.fingerprint(), indexed.chunks());
         }
-        embeddingFingerprint = indexed.fingerprint();
+        embeddingIndexKey = embeddingIndexKey(indexed);
     }
 
     private void rebuildSupportIndexes(SchemaMetadataSnapshot snapshot, IndexedSchemaChunks indexed) {
         if (!indexed.fingerprint().equals(vocabularyFingerprint)) {
             rebuildVocabulary(snapshot, indexed.chunks());
         }
-        if (!indexed.fingerprint().equals(embeddingFingerprint)) {
+        if (!embeddingIndexKey(indexed).equals(embeddingIndexKey)) {
             rebuildEmbeddings(indexed);
         }
+    }
+
+    private String embeddingIndexKey(IndexedSchemaChunks indexed) {
+        return embeddingIndexService == null ? indexed.fingerprint() : embeddingIndexService.indexKey(indexed.fingerprint());
     }
 }

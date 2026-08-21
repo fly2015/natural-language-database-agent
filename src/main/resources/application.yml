@@ -1,57 +1,16 @@
+server:
+  port: ${SERVER_PORT:20001}
 spring:
   application:
     name: natural-language-database-agent
+  profiles:
+    default: full-postgres
   config:
-    import: optional:classpath:business-rules.yml
-  datasource:
-    url: jdbc:h2:mem:nlda;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  sql:
-    init:
-      mode: always
-  h2:
-    console:
-      enabled: true
+    import:
+      - classpath:config/agent-common.yml
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
-
-agent:
-  retrieval:
-    business-rule-source: ${AGENT_RETRIEVAL_BUSINESS_RULE_SOURCE:yaml}
-    datasource-id: ${AGENT_DATASOURCE_ID:default}
-    tenant-id: ${AGENT_TENANT_ID:}
-    consume-only: true
-    embedding:
-      provider: ${AGENT_RETRIEVAL_EMBEDDING_PROVIDER:fake}
-      model: ${AGENT_RETRIEVAL_EMBEDDING_MODEL:fake-hash-embedding}
-      api-key: ${OPENAI_API_KEY:}
-      base-url: ${OPENAI_BASE_URL:}
-      dimensions: ${AGENT_RETRIEVAL_EMBEDDING_DIMENSIONS:64}
-      max-retries: ${AGENT_RETRIEVAL_EMBEDDING_MAX_RETRIES:0}
-      timeout: ${AGENT_RETRIEVAL_EMBEDDING_TIMEOUT:30s}
-      search-limit: ${AGENT_RETRIEVAL_EMBEDDING_SEARCH_LIMIT:8}
-    vector:
-      provider: ${AGENT_RETRIEVAL_VECTOR_PROVIDER:in-memory}
-    vocabulary:
-      provider: ${AGENT_RETRIEVAL_VOCABULARY_PROVIDER:in-memory}
-      datasource-id: ${AGENT_DATASOURCE_ID:default}
-      similarity-threshold: ${AGENT_VOCABULARY_SIMILARITY_THRESHOLD:0.58}
-      ambiguity-delta: ${AGENT_VOCABULARY_AMBIGUITY_DELTA:0.05}
-      max-candidates: ${AGENT_VOCABULARY_MAX_CANDIDATES:5}
-  sql:
-    default-limit: 100
-    max-limit: 1000
-  llm:
-    provider: ${AGENT_LLM_PROVIDER:deterministic}
-    api-key: ${OPENAI_API_KEY:}
-    model: ${OPENAI_MODEL:gpt-4.1-mini}
-    base-url: ${OPENAI_BASE_URL:}
-    timeout: 30s
-    max-retries: 1
-    repair-retries: 1

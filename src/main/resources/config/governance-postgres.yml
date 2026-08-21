@@ -1,0 +1,10 @@
+agent:
+  datasource:
+    governance:
+      url: ${POSTGRES_GOVERNANCE_JDBC_URL:jdbc:postgresql://localhost:5432/nlda_governance}
+      username: ${POSTGRES_GOVERNANCE_USER:${POSTGRES_USER:nlda}}
+      password: ${POSTGRES_GOVERNANCE_PASSWORD:${POSTGRES_PASSWORD:nlda}}
+      driver-class-name: org.postgresql.Driver
+  retrieval:
+    business-rule-source: database
+    consume-only: true

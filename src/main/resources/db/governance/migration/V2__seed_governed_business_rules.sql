@@ -1,3 +1,12 @@
+DELETE FROM governed_business_rule_alias
+WHERE rule_id IN ('rule.revenue', 'rule.undelivered', 'rule.customer_alias');
+
+DELETE FROM governed_business_rule_schema_ref
+WHERE rule_id IN ('rule.revenue', 'rule.undelivered', 'rule.customer_alias');
+
+DELETE FROM governed_business_rule
+WHERE id IN ('rule.revenue', 'rule.undelivered', 'rule.customer_alias');
+
 INSERT INTO governed_business_rule (
     id, name, text, owner, version, approval_status, datasource_id, tenant_id, active, created_at, updated_at
 ) VALUES

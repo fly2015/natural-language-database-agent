@@ -1,3 +1,8 @@
+DELETE FROM order_items;
+DELETE FROM orders;
+DELETE FROM products;
+DELETE FROM customers;
+
 INSERT INTO customers (id, name, region, vip) VALUES
     (1, 'Acme Retail', 'Hanoi', TRUE),
     (2, 'Blue Ocean Market', 'Da Nang', FALSE),
