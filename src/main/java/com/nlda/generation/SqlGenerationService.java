@@ -1,5 +1,6 @@
 package com.nlda.generation;
 
+import com.nlda.audit.AuditContext;
 import com.nlda.retrieval.model.RetrievalContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,12 +55,39 @@ public class SqlGenerationService {
     }
 
     private GeneratedSql callModel(String prompt, String phase) {
+        long started = System.nanoTime();
         try {
-            return responseParser.parse(llmClient.complete(prompt));
+            GeneratedSql generatedSql = responseParser.parse(llmClient.complete(prompt));
+            logAtStatus(generatedSql.status(), "flowEvent=llm.sql_generation.model_call traceId={} status={} latencyMs={} phase={} sqlPresent={} assumptionCount={} reason=\"{}\"",
+                    AuditContext.traceId(), generatedSql.status(), elapsedMs(started), phase,
+                    generatedSql.sql() != null && !generatedSql.sql().isBlank(), generatedSql.assumptions().size(),
+                    safe(generatedSql.reason()));
+            return generatedSql;
         } catch (RuntimeException ex) {
-            log.warn("sqlGeneration phase={} failed message={}", phase, ex.getMessage());
+            log.warn("flowEvent=llm.sql_generation.model_call traceId={} status=FAILED latencyMs={} phase={} reason=\"{}\"",
+                    AuditContext.traceId(), elapsedMs(started), phase, safe(ex.getMessage()));
             return GeneratedSql.rejected("The request could not be completed safely.");
         }
+    }
+
+    private long elapsedMs(long started) {
+        return (System.nanoTime() - started) / 1_000_000;
+    }
+
+    private void logAtStatus(String status, String pattern, Object... args) {
+        if ("OK".equals(status)) {
+            log.info(pattern, args);
+        } else {
+            log.warn(pattern, args);
+        }
+    }
+
+    private String safe(String value) {
+        if (value == null) {
+            return "";
+        }
+        String sanitized = value.replaceAll("[\\r\\n\\t]+", " ").trim();
+        return sanitized.length() <= 240 ? sanitized : sanitized.substring(0, 240);
     }
 
     private boolean containsAny(String value, String... terms) {

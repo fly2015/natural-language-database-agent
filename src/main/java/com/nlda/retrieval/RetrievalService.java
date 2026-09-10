@@ -245,6 +245,14 @@ public class RetrievalService {
     private ProcessedQuery processForAudit(String value, RetrievalMode mode) {
         long started = System.nanoTime();
         ProcessedQuery processedQuery = process(value);
+        log.info("flowEvent=retrieval.query_processed traceId={} status={} latencyMs={} mode={} tokenCount={} ambiguous={}",
+                AuditContext.traceId(), processedQuery.ambiguous() ? "AMBIGUOUS" : "OK",
+                (System.nanoTime() - started) / 1_000_000, mode, processedQuery.tokens().size(),
+                processedQuery.ambiguous());
+        log.info("flowEvent=retrieval.correction traceId={} status={} mode={} correctionCount={} aliasCount={} confidence={}",
+                AuditContext.traceId(), processedQuery.ambiguous() ? "AMBIGUOUS" : "OK", mode,
+                processedQuery.correctedTerms().size(), processedQuery.aliases().size(),
+                processedQuery.correctionConfidence());
         audit("retrieval.query.process", processedQuery.ambiguous() ? "AMBIGUOUS" : "OK", started,
                 map("mode", mode, "input", value), map("processorClass", queryProcessor.getClass().getName(),
                         "processedQuery", processedQuery));
@@ -257,7 +265,8 @@ public class RetrievalService {
     }
 
     private void logAttempt(RetrievalAttempt attempt) {
-        log.info("retrievalAttempt={} mode={} confidence={} failureCode={} resultCount={}",
+        log.info("flowEvent=retrieval.attempt_completed traceId={} status={} attemptNumber={} mode={} confidence={} failureCode={} resultCount={}",
+                AuditContext.traceId(), RetrievalFailureCode.NONE.code().equals(attempt.failureCode()) ? "OK" : "REJECTED",
                 attempt.attemptNumber(), attempt.mode(), attempt.confidence(), attempt.failureCode(),
                 attempt.resultCount());
     }
@@ -265,7 +274,7 @@ public class RetrievalService {
     private List<Map<String, Object>> chunkSummaries(List<RetrievedChunk> chunks) {
         return chunks.stream()
                 .map(chunk -> map("id", chunk.id(), "kind", chunk.kind(), "score", chunk.score(), "schemaRefs",
-                        chunk.schemaRefs(), "aliases", chunk.aliases(), "text", chunk.text()))
+                        chunk.schemaRefs(), "aliasCount", chunk.aliases().size()))
                 .toList();
     }
 

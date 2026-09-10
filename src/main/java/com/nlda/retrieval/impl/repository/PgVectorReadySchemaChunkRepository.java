@@ -9,6 +9,7 @@ import com.nlda.retrieval.model.RetrievedChunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -37,6 +38,7 @@ public class PgVectorReadySchemaChunkRepository implements SchemaChunkRepository
         this.properties = null;
     }
 
+    @Autowired
     public PgVectorReadySchemaChunkRepository(
             @Qualifier("retrievalJdbcTemplate") ObjectProvider<JdbcTemplate> jdbcTemplate,
             VocabularyProperties properties
@@ -131,4 +133,3 @@ public class PgVectorReadySchemaChunkRepository implements SchemaChunkRepository
         return Set.of();
     }
 }
-

@@ -12,6 +12,18 @@ public interface VectorRetrievalRepository {
 
     List<RetrievedChunk> search(float[] queryEmbedding, String fingerprint, String embeddingModel, int limit);
 
+    default boolean hasActiveEmbeddings(String fingerprint, String embeddingModel) {
+        return activeCount(fingerprint, embeddingModel) > 0;
+    }
+
+    default long activeCount(String fingerprint, String embeddingModel) {
+        return records().stream()
+                .filter(RetrievalIndexRecord::active)
+                .filter(record -> record.schemaFingerprint().equals(fingerprint))
+                .filter(record -> record.embeddingModel().equals(embeddingModel))
+                .count();
+    }
+
     default List<RetrievalIndexRecord> records() {
         return List.of();
     }

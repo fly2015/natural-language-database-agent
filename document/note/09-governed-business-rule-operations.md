@@ -131,6 +131,57 @@ PostgreSQL mode uses:
 - `nlda_retrieval` `pg_trgm` for typo/fuzzy vocabulary lookup
 - `nlda_app` datasource tables for schema inspection and SQL execution
 
+## Embedding Index Operations
+PostgreSQL mode defaults to OpenAI embeddings:
+
+```yaml
+AGENT_RETRIEVAL_EMBEDDING_PROVIDER: openai
+AGENT_RETRIEVAL_EMBEDDING_MODEL: text-embedding-3-small
+```
+
+Local/default mode uses fake deterministic embeddings:
+
+```yaml
+AGENT_RETRIEVAL_EMBEDDING_PROVIDER: fake
+AGENT_RETRIEVAL_EMBEDDING_MODEL: fake-hash-embedding
+```
+
+OpenAI embeddings require `OPENAI_API_KEY`. Embedding calls are separate from chat/SQL LLM calls. They are billed as embedding input tokens, not chat completion tokens. The configured OpenAI project must have access to the selected embedding model.
+
+Schema and governed business-rule embeddings are built during explicit index rebuilds or refresh operations, then stored in `nlda_retrieval.retrieval_chunk_embedding` for later pgvector search. Normal user queries do not rebuild all embeddings. When semantic retrieval is active, each user query may call the embedding provider once to create the query vector.
+
+Manual rebuild:
+
+```powershell
+Invoke-RestMethod -Method Post http://localhost:8080/api/admin/retrieval-index/rebuild
+```
+
+Schema refresh and rebuild:
+
+```powershell
+Invoke-RestMethod -Method Post http://localhost:8080/api/admin/schema/refresh
+```
+
+Business-rule rebuild:
+
+```powershell
+Invoke-RestMethod -Method Post http://localhost:8080/api/admin/retrieval-index/business-rules/rebuild
+```
+
+Selected rule rebuild:
+
+```powershell
+Invoke-RestMethod -Method Post http://localhost:8080/api/admin/business-rules/rule.revenue/reindex
+```
+
+Inspect stored embedding models:
+
+```powershell
+docker exec nlda-postgres-database-server psql -U nlda -d nlda_retrieval -c "select embedding_model, active, count(*) from retrieval_chunk_embedding group by embedding_model, active order by embedding_model, active;"
+```
+
+If rebuild fails with `model_not_found`, change `AGENT_RETRIEVAL_EMBEDDING_MODEL` to an embedding model available to the OpenAI project, recreate the app container, and rerun the rebuild. Failed embedding rebuilds do not write partial vectors to pgvector.
+
 ## Admin UI
 Open:
 

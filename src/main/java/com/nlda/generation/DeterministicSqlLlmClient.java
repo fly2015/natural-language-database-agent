@@ -32,6 +32,15 @@ public class DeterministicSqlLlmClient implements SqlLlmClient {
                     LIMIT 10
                     """, "Interpreted spending as sum of order total_amount.");
         }
+        if (containsAny(normalized, "list", "show") && containsAny(normalized, "customer", "customers")
+                && !containsAny(normalized, "spending", "spend", "revenue", "orders", "order count")) {
+            return ok("""
+                    SELECT c.id AS customer_id, c.name AS customer_name, c.region, c.vip
+                    FROM customers c
+                    ORDER BY c.id
+                    LIMIT 10
+                    """, "Listed customers from the customers table.");
+        }
         if (containsAll(normalized, "monthly", "revenue")) {
             return ok("""
                     SELECT FORMATDATETIME(o.order_date, 'yyyy-MM') AS revenue_month, SUM(o.total_amount) AS revenue

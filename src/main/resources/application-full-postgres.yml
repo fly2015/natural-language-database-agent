@@ -6,6 +6,11 @@ spring:
       - classpath:config/retrieval-postgres.yml
 
 agent:
+  llm:
+    provider: ${AGENT_LLM_PROVIDER:openai}
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-4.1-mini}
+    base-url: ${OPENAI_BASE_URL:}
   migration:
     app-enabled: ${AGENT_MIGRATION_APP_ENABLED:true}
     governance-enabled: ${AGENT_MIGRATION_GOVERNANCE_ENABLED:false}

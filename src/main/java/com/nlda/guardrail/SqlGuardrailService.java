@@ -1,7 +1,14 @@
 package com.nlda.guardrail;
 
+import com.nlda.audit.AuditContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -11,6 +18,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class SqlGuardrailService {
+
+    private static final Logger log = LoggerFactory.getLogger(SqlGuardrailService.class);
 
     private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 1000;
@@ -31,8 +40,11 @@ public class SqlGuardrailService {
     }
 
     public GuardrailResult validateAndSanitize(String sql) {
+        long started = System.nanoTime();
         List<String> violations = new ArrayList<>();
         if (sql == null || sql.isBlank()) {
+            log.warn("flowEvent=guardrail.validation.completed traceId={} status=DENY latencyMs={} sqlHash={} violationCount=1 reason=\"SQL is empty.\"",
+                    AuditContext.traceId(), elapsedMs(started), sqlHash(sql));
             return GuardrailResult.deny(List.of("SQL is empty."));
         }
 
@@ -56,6 +68,9 @@ public class SqlGuardrailService {
         violations.addAll(validateSchemaReferences(uncommented));
 
         if (!violations.isEmpty()) {
+            log.warn("flowEvent=guardrail.validation.completed traceId={} status=DENY latencyMs={} sqlHash={} violationCount={} reason=\"{}\"",
+                    AuditContext.traceId(), elapsedMs(started), sqlHash(sql), violations.size(),
+                    safe(String.join(" ", violations)));
             return GuardrailResult.deny(violations);
         }
 
@@ -69,7 +84,34 @@ public class SqlGuardrailService {
                 limitedSql = limitMatcher.replaceFirst("LIMIT " + MAX_LIMIT);
             }
         }
+        log.info("flowEvent=guardrail.validation.completed traceId={} status=ALLOW latencyMs={} sqlHash={} violationCount=0",
+                AuditContext.traceId(), elapsedMs(started), sqlHash(limitedSql));
         return new GuardrailResult(true, limitedSql, List.of());
+    }
+
+    private long elapsedMs(long started) {
+        return (System.nanoTime() - started) / 1_000_000;
+    }
+
+    private String sqlHash(String sql) {
+        if (sql == null || sql.isBlank()) {
+            return "";
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(sql.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash).substring(0, 16);
+        } catch (NoSuchAlgorithmException ex) {
+            return "";
+        }
+    }
+
+    private String safe(String value) {
+        if (value == null) {
+            return "";
+        }
+        String sanitized = value.replaceAll("[\\r\\n\\t]+", " ").trim();
+        return sanitized.length() <= 240 ? sanitized : sanitized.substring(0, 240);
     }
 
     private List<String> validateSchemaReferences(String sql) {

@@ -48,6 +48,8 @@ class ProfileConfigurationTest {
                     assertThat(rules.getBusinessRuleSource()).isEqualTo(BusinessRuleProperties.Source.DATABASE);
                     assertThat(vocabulary.provider()).isEqualTo("postgres-trgm");
                     assertThat(environment.getProperty("agent.retrieval.vector.provider")).isEqualTo("pgvector");
+                    assertThat(environment.getProperty("agent.llm.provider")).isEqualTo("openai");
+                    assertThat(environment.getProperty("agent.llm.model")).isEqualTo("gpt-4.1-mini");
                     assertThat(embedding.provider()).isEqualTo("openai");
                     assertThat(embedding.model()).isEqualTo("text-embedding-3-small");
                     assertThat(embedding.dimensions()).isEqualTo(64);

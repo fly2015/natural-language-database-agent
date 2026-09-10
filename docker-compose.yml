@@ -5,7 +5,7 @@ x-database-postgres-credentials: &database-postgres-credentials
 x-app-common-environment: &app-common-environment
   SPRING_PROFILES_ACTIVE: full-postgres
   SERVER_PORT: 8080
-  AGENT_LLM_PROVIDER: ${AGENT_LLM_PROVIDER:-deterministic}
+  AGENT_LLM_PROVIDER: ${AGENT_LLM_PROVIDER:-openai}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
   OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
@@ -65,6 +65,8 @@ services:
         - *datasource-postgres-environment
         - *governance-postgres-environment
         - *retrieval-postgres-environment
+    volumes:
+      - ./logs:/app/logs
     ports:
       - "8080:8080"
 

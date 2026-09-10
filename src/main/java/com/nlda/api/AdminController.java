@@ -1,9 +1,11 @@
 package com.nlda.api;
 
 import com.nlda.retrieval.contract.VectorRetrievalRepository;
+import com.nlda.retrieval.config.EmbeddingProperties;
 import com.nlda.retrieval.governance.BusinessRuleGovernanceService;
 import com.nlda.retrieval.governance.GovernedBusinessRule;
 import com.nlda.retrieval.governance.RebuildResult;
+import com.nlda.retrieval.governance.RebuildStatus;
 import com.nlda.retrieval.governance.RetrievalIndexRebuildService;
 import com.nlda.retrieval.model.RetrievalIndexRecord;
 import com.nlda.retrieval.model.schema.SchemaMetadataSnapshot;
@@ -25,15 +27,18 @@ public class AdminController {
     private final BusinessRuleGovernanceService governanceService;
     private final RetrievalIndexRebuildService rebuildService;
     private final VectorRetrievalRepository vectorRepository;
+    private final EmbeddingProperties embeddingProperties;
 
     public AdminController(
             BusinessRuleGovernanceService governanceService,
             RetrievalIndexRebuildService rebuildService,
-            VectorRetrievalRepository vectorRepository
+            VectorRetrievalRepository vectorRepository,
+            EmbeddingProperties embeddingProperties
     ) {
         this.governanceService = governanceService;
         this.rebuildService = rebuildService;
         this.vectorRepository = vectorRepository;
+        this.embeddingProperties = embeddingProperties;
     }
 
     @GetMapping("/business-rules")
@@ -100,7 +105,17 @@ public class AdminController {
 
     @GetMapping("/retrieval-diagnostics")
     public DiagnosticsSummary retrievalDiagnostics() {
-        return new DiagnosticsSummary(vectorRepository.records().size(), "Use query trace logs for selected chunks and scores.");
+        List<RetrievalIndexRecord> records = vectorRepository.records();
+        long activeRecordCount = records.stream().filter(RetrievalIndexRecord::active).count();
+        RebuildStatus lastRebuild = rebuildService.lastRebuildStatus();
+        return new DiagnosticsSummary(
+                embeddingProperties.provider(),
+                embeddingProperties.model(),
+                records.size(),
+                activeRecordCount,
+                lastRebuild,
+                "Use query trace logs for selected chunks and scores."
+        );
     }
 
     private GovernedBusinessRule saveDraft(AdminBusinessRuleRequest request) {
@@ -112,6 +127,13 @@ public class AdminController {
     public record SchemaSummary(String fingerprint, int tableCount, Object tables) {
     }
 
-    public record DiagnosticsSummary(int indexedRecordCount, String message) {
+    public record DiagnosticsSummary(
+            String embeddingProvider,
+            String embeddingModel,
+            int indexedRecordCount,
+            long activeIndexedRecordCount,
+            RebuildStatus lastRebuild,
+            String message
+    ) {
     }
 }

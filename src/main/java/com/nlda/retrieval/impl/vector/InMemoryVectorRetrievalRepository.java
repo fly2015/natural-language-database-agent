@@ -35,6 +35,14 @@ public class InMemoryVectorRetrievalRepository implements VectorRetrievalReposit
     }
 
     @Override
+    public long activeCount(String fingerprint, String embeddingModel) {
+        return current.get().stream()
+                .filter(chunk -> chunk.fingerprint().equals(fingerprint))
+                .filter(chunk -> chunk.embeddingModel().equals(embeddingModel))
+                .count();
+    }
+
+    @Override
     public List<RetrievalIndexRecord> records() {
         return current.get().stream()
                 .map(chunk -> new RetrievalIndexRecord(

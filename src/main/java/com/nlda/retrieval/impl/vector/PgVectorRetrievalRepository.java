@@ -123,6 +123,19 @@ public class PgVectorRetrievalRepository implements VectorRetrievalRepository {
     }
 
     @Override
+    public long activeCount(String fingerprint, String embeddingModel) {
+        Long count = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                  FROM retrieval_chunk_embedding
+                 WHERE datasource_id = ?
+                   AND schema_fingerprint = ?
+                   AND embedding_model = ?
+                   AND active = true
+                """, Long.class, vocabularyProperties.datasourceId(), fingerprint, embeddingModel);
+        return count == null ? 0 : count;
+    }
+
+    @Override
     public List<RetrievalIndexRecord> records() {
         return jdbcTemplate.query("""
                 SELECT chunk_id, kind, schema_fingerprint, content_hash, embedding_model, active, updated_at

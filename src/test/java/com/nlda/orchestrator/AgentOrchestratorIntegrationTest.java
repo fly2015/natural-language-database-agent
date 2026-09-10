@@ -52,6 +52,17 @@ class AgentOrchestratorIntegrationTest {
     }
 
     @Test
+    void listsCustomersWhenNoMetricIsRequested() {
+        QueryResponse response = orchestrator.answer("list 10 customers");
+
+        assertThat(response.status()).isEqualTo("OK");
+        assertThat(response.sql()).contains("FROM customers c");
+        assertThat(response.sql()).contains("LIMIT 10");
+        assertThat(response.table().columns()).contains("customer_id", "customer_name", "region", "vip");
+        assertThat(response.table().rows()).isNotEmpty();
+    }
+
+    @Test
     void asksForMetricWhenTopCustomerQuestionIsAmbiguous() {
         QueryResponse response = orchestrator.answer("Show top 10 customer in 2026");
 

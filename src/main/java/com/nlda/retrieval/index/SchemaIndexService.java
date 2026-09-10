@@ -1,5 +1,6 @@
 package com.nlda.retrieval.index;
 
+import com.nlda.audit.AuditContext;
 import com.nlda.retrieval.contract.SchemaChunkRepository;
 import com.nlda.retrieval.contract.SchemaMetadataProvider;
 import com.nlda.retrieval.contract.RetrievalVocabularyIndexService;
@@ -72,13 +73,15 @@ public class SchemaIndexService {
     }
 
     public IndexedSchemaChunks refresh() {
+        long started = System.nanoTime();
         SchemaMetadataSnapshot snapshot = metadataProvider.extract();
         List<RetrievedChunk> chunks = chunkBuilder.build(snapshot);
         IndexedSchemaChunks indexed = new IndexedSchemaChunks(snapshot.fingerprint(), chunks);
         chunkRepository.replace(indexed);
         rebuildSupportIndexes(snapshot, indexed);
-        log.info("schemaIndexRefresh dialect={} fingerprint={} chunkCount={}", metadataProvider.dialect(),
-                indexed.fingerprint(), indexed.chunks().size());
+        log.info("operationEvent=schema.index_refresh.completed traceId={} status=OK latencyMs={} dialect={} fingerprint={} chunkCount={}",
+                AuditContext.traceId(), elapsedMs(started), metadataProvider.dialect(), indexed.fingerprint(),
+                indexed.chunks().size());
         return indexed;
     }
 
@@ -91,11 +94,13 @@ public class SchemaIndexService {
                     return existing;
                 })
                 .orElseGet(() -> {
+                    long started = System.nanoTime();
                     List<RetrievedChunk> chunks = chunkBuilder.build(snapshot);
                     IndexedSchemaChunks indexed = new IndexedSchemaChunks(snapshot.fingerprint(), chunks);
                     chunkRepository.replace(indexed);
                     rebuildSupportIndexes(snapshot, indexed);
-                    log.info("schemaIndexBuild dialect={} fingerprint={} chunkCount={}", metadataProvider.dialect(),
+                    log.info("operationEvent=schema.index_build.completed traceId={} status=OK latencyMs={} dialect={} fingerprint={} chunkCount={}",
+                            AuditContext.traceId(), elapsedMs(started), metadataProvider.dialect(),
                             indexed.fingerprint(), indexed.chunks().size());
                     return indexed;
                 });
@@ -126,5 +131,9 @@ public class SchemaIndexService {
 
     private String embeddingIndexKey(IndexedSchemaChunks indexed) {
         return embeddingIndexService == null ? indexed.fingerprint() : embeddingIndexService.indexKey(indexed.fingerprint());
+    }
+
+    private long elapsedMs(long started) {
+        return (System.nanoTime() - started) / 1_000_000;
     }
 }
